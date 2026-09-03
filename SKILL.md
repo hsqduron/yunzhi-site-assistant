@@ -1,7 +1,7 @@
 ---
-name: website-builder
+name: yunzhi-website-builder
 version: 1.2.0
-display_name: 建站助手
+display_name: 云指建站助手
 display_name_en: website builder
 description: "用于 SAAS 建站系统的页面创建、修改与排障，当用户需要新建网站、从零规划站点、搬站/仿站、生成/修改企业网站页面（自由页 HTML/CSS/JS、Twig 风格模板）、调用产品/文章/下载/相册/门店/栏目/FAQ 数据、做自定义表单/产品询盘/在线查询、上传或修改产品/文章数据等时可使用本技能。通过用户指定站点的 MCP 服务查询与写入站点内容。本技能与 Workbuddy、Codex 等协同使用时，可实现从需求到页面的端到端自动交付，建站流程大幅简化。"
 description_zh: "用于 SAAS 建站系统的页面创建、修改与排障，当用户需要新建网站、从零规划站点、搬站/仿站、生成/修改企业网站页面（自由页 HTML/CSS/JS、Twig 风格模板）、调用产品/文章/下载/相册/门店/栏目/FAQ 数据、做自定义表单/产品询盘/在线查询、上传或修改产品/文章数据等时可使用本技能。通过用户指定站点的 MCP 服务查询与写入站点内容。本技能与 Workbuddy、Codex 等协同使用时，可实现从需求到页面的端到端自动交付，建站流程大幅简化。"
