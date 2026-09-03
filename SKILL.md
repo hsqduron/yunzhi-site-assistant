@@ -1,6 +1,11 @@
 ---
-name: 建站助手
+name: website-builder
+version: 1.2.0
+display_name: 建站助手
+display_name_en: website builder
 description: "用于 SAAS 建站系统的页面创建、修改与排障，当用户需要新建网站、从零规划站点、搬站/仿站、生成/修改企业网站页面（自由页 HTML/CSS/JS、Twig 风格模板）、调用产品/文章/下载/相册/门店/栏目/FAQ 数据、做自定义表单/产品询盘/在线查询、上传或修改产品/文章数据等时可使用本技能。通过用户指定站点的 MCP 服务查询与写入站点内容。本技能与 Workbuddy、Codex 等协同使用时，可实现从需求到页面的端到端自动交付，建站流程大幅简化。"
+description_zh: "用于 SAAS 建站系统的页面创建、修改与排障，当用户需要新建网站、从零规划站点、搬站/仿站、生成/修改企业网站页面（自由页 HTML/CSS/JS、Twig 风格模板）、调用产品/文章/下载/相册/门店/栏目/FAQ 数据、做自定义表单/产品询盘/在线查询、上传或修改产品/文章数据等时可使用本技能。通过用户指定站点的 MCP 服务查询与写入站点内容。本技能与 Workbuddy、Codex 等协同使用时，可实现从需求到页面的端到端自动交付，建站流程大幅简化。"
+description_en: "This skill is used for page creation, modification, and troubleshooting in the SAAS website building system. It can be utilized when users need to create new websites, plan sites from scratch, migrate/clone sites, generate/modify corporate website pages (free pages in HTML/CSS/JS, Twig style templates), call product/article/download/album/store/column/FAQ data, create custom forms/product inquiries/online queries, upload or modify product/article data, etc. Through user-specified MCP service queries and writing site content, this skill, when used in conjunction with Workbuddy, Codex, and other tools, can achieve end-to-end automatic delivery from requirements to pages, significantly simplifying the website building process."
 when_to_use: "当用户说“帮我建个网站”“做个官网/落地页”“搭个博客/站点脚手架”或任何需要新建网站、站点改版、选型建站框架、管理网站数据时使用本技能；非建站类任务不要使用。"
 ---
 
