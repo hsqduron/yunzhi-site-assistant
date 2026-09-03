@@ -33,7 +33,16 @@
 | `list_custom_form` | 查询 | 列出当前站点普通自定义表单 |
 | `add_custom_form` | 写入 | 新增普通自定义表单及字段 |
 | `edit_custom_form` | 写入 | 修改普通自定义表单、字段或删除字段 |
+| `add_faq` | 写入 | 新增 FAQ |
+| `add_faq_class` | 写入 | 新增 FAQ 分类 |
+| `del_faq` | 高风险删除 | 永久删除 FAQ |
+| `del_faq_class` | 高风险删除 | 永久删除 FAQ 分类 |
+| `edit_faq` | 写入 | 修改 FAQ |
+| `edit_faq_class` | 写入 | 修改 FAQ 分类 |
+| `get_faq_info` | 查询 | 获取单条 FAQ 详情 |
 | `list_news_class` | 查询 | 列出完整新闻分类树 |
+| `list_faq` | 查询 | 分页列出 FAQ |
+| `list_faq_class` | 查询 | 列出 FAQ 分类 |
 | `list_page` | 查询 | 分页列出首页和自定义页面 |
 | `get_page_info` | 查询 | 获取当前站点 AI 自定义页面的页面信息和源码 |
 | `list_product_class` | 查询 | 列出完整产品分类树 |
@@ -41,6 +50,16 @@
 | `get_news_list` | 查询 | 分页查询已发布文章 |
 | `get_product_info` | 查询 | 获取单个产品基础详情 |
 | `get_product_list` | 查询 | 分页查询已发布产品 |
+| `list_gallery` | 查询 | 分页列出当前站点相册 |
+| `list_gallery_item` | 查询 | 分页列出指定相册图片 |
+| `add_gallery` | 写入 | 新增一个站点相册 |
+| `add_gallery_item` | 写入 | 向相册新增图片 |
+| `edit_gallery` | 写入 | 修改相册名称和描述 |
+| `edit_gallery_item` | 写入 | 修改相册图片及其信息 |
+| `change_gallery_item_sort` | 写入 | 修改相册图片排序 |
+| `del_gallery` | 高风险删除 | 永久删除相册及图片文件 |
+| `del_gallery_item` | 高风险删除 | 永久删除相册图片及文件 |
+| `edit_company_info` | 写入 | 修改网站名称和公司联系信息 |
 | `get_online_query_list` | 查询 | 分页查询在线查询配置列表 |
 | `get_enquiry_form_id` | 查询/可能写入 | 获取当前站点在线询盘表单 ID |
 | `list_sqlite_db` | 查询 | 列出当前站点的 SQLite 数据库 |
@@ -270,6 +289,210 @@
 - 更新表单、字段和删除字段不是跨调用事务；中途失败时已完成的修改不会自动回滚，失败后应使用 `list_custom_form` 或后台查询确认实际状态。
 - 修改页面中的表单代码前，仍需先按表单规则读取并确认当前表单，不能用静态表单替代系统表单。
 - 这两个工具都不能修改在线询盘表单；在线询盘表单使用 `get_enquiry_form_id`。
+
+## `add_faq`
+
+用途：在当前站点新增一条 FAQ。工具默认立即发布，也可以通过 `status=0` 保存为草稿。
+
+这是写入工具。调用前必须确认问题、答案、分类、置顶状态、排序值和发布状态。
+
+参数：
+
+```json
+{
+  "question": "如何联系公司？",
+  "answer": "<p>请通过联系我们页面提交信息。</p>",
+  "classIds": [12],
+  "isTop": 0,
+  "status": 1,
+  "showOrder": 0
+}
+```
+
+参数说明：
+
+- `question`：必填，FAQ 问题，不能仅包含空白字符。
+- `answer`：必填，FAQ 答案，可传 HTML，不能仅包含空白字符。
+- `classIds`：可选，当前站点 FAQ 分类 ID 数组；省略或传空数组表示未分类。每个 ID 必须是正整数或正数字符串，不能重复。
+- `isTop`：可选，是否置顶，`0` 为否，`1` 为是，默认 `0`。
+- `status`：可选，发布状态，`0` 为草稿，`1` 为发布，默认 `1`。
+- `showOrder`：可选，非负整数排序值，默认 `0`。
+
+返回：成功返回新 FAQ 的 ID、问题、答案、分类、置顶状态、发布状态和排序等摘要信息；具体字段以工具实际返回为准。
+
+## `add_faq_class`
+
+用途：在当前站点新增一个 FAQ 分类。FAQ 分类没有父级、排序或层级结构。
+
+这是写入工具。调用前必须确认分类名称和图标。
+
+参数：
+
+```json
+{
+  "name": "售后服务",
+  "icon": ""
+}
+```
+
+- `name`：必填，FAQ 分类名称，不能仅包含空白字符。
+- `icon`：可选，分类图标字段，默认空字符串。
+
+返回：成功返回新分类的 ID、名称和图标等信息。
+
+## `del_faq`
+
+用途：物理删除当前站点指定的一条 FAQ，删除后不可恢复。
+
+参数：
+
+```json
+{
+  "id": 123
+}
+```
+
+限制：
+
+- `id` 必须是当前站点 FAQ 的正整数 ID 或正数字符串。
+- 重复删除或使用其他站点的 FAQ ID 会返回错误。
+- 输入对象不接受额外属性。
+
+调用前必须向用户展示当前站点、FAQ ID、问题和删除影响，并取得针对该 FAQ 的明确永久删除确认。不得复用其他写入操作的确认。
+
+## `del_faq_class`
+
+用途：物理删除当前站点指定的 FAQ 分类，删除后不可恢复。
+
+参数：
+
+```json
+{
+  "classId": 12
+}
+```
+
+限制：
+
+- `classId` 必须是当前站点 FAQ 分类的正整数 ID 或正数字符串。
+- 删除分类不会修改已有 FAQ 中保存的 `ClassID` 分类字符串，这是现有后台行为。
+- 输入对象不接受额外属性。
+
+调用前必须展示分类 ID、分类名称、关联 FAQ 影响，并取得明确永久删除确认。
+
+## `edit_faq`
+
+用途：部分修改当前站点的一条 FAQ。未提交的字段保持原值，至少需要提交一个更新字段。
+
+参数：
+
+```json
+{
+  "id": 123,
+  "question": "更新后的问题",
+  "answer": "<p>更新后的答案。</p>",
+  "classIds": [],
+  "isTop": 0,
+  "status": 1,
+  "showOrder": 0
+}
+```
+
+参数说明：
+
+- `id`：必填，要修改的当前站点 FAQ ID。
+- `question`：可选，新的 FAQ 问题，不能仅包含空白字符。
+- `answer`：可选，新的 FAQ 答案，可传 HTML，不能仅包含空白字符。
+- `classIds`：可选，新的 FAQ 分类 ID 数组；传空数组表示未分类。
+- `isTop`：可选，是否置顶，`0` 为否，`1` 为是。
+- `status`：可选，`0` 为草稿，`1` 为发布。
+- `showOrder`：可选，新的非负整数排序值。
+
+调用前应先使用 `get_faq_info` 读取当前 FAQ，展示拟修改字段并取得确认。涉及 `status=1` 时，明确提示该 FAQ 会发布。
+
+## `edit_faq_class`
+
+用途：部分修改当前站点的 FAQ 分类。未提交的字段保持原值，至少需要提交 `name` 或 `icon` 之一。
+
+参数：
+
+```json
+{
+  "classId": 12,
+  "name": "新的分类名称",
+  "icon": ""
+}
+```
+
+参数说明：
+
+- `classId`：必填，要修改的当前站点 FAQ 分类 ID。
+- `name`：可选，新的分类名称，不能仅包含空白字符。
+- `icon`：可选，新的分类图标；传空字符串可清空图标。
+
+调用前应先使用 `list_faq_class` 核对分类，展示拟修改字段并取得确认。
+
+## `get_faq_info`
+
+用途：获取当前站点一条 FAQ 的完整信息。
+
+参数：
+
+```json
+{
+  "id": 123
+}
+```
+
+限制和返回：
+
+- `id` 必须是当前站点 FAQ ID，且为正整数或正数字符串。
+- FAQ 不存在或不属于当前站点时返回工具错误。
+- 成功返回 `ID`、`Question`、`Answer`、`ClassID`、`classIds`、`ClassName`、`IsTop`、`Status`、`ShowOrder` 和 `CrTime`。
+
+## `list_faq`
+
+用途：分页列出当前站点 FAQ，支持按问题/答案关键字、分类、置顶状态和发布状态筛选。
+
+参数：
+
+```json
+{
+  "keyword": "",
+  "classId": -1,
+  "isTop": 0,
+  "status": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+参数说明：
+
+- `keyword`：可选，按 `Question` 或 `Answer` 模糊搜索，默认空字符串。
+- `classId`：可选，`-1` 表示全部分类；正整数只返回关联该分类的 FAQ，默认 `-1`。
+- `isTop`：可选，`0` 为否，`1` 为是；不传时返回全部。
+- `status`：可选，`0` 为草稿，`1` 为发布；不传时返回全部。
+- `page`：可选，页码从 `1` 开始，默认 `1`。
+- `pageSize`：可选，每页 `1` 至 `100` 条，默认 `20`。
+
+限制和返回：
+
+- 查询范围严格限定为当前站点。
+- 返回结构与后台 FAQ 管理列表一致，包含分页信息。
+- 每条记录保留后台原始 FAQ 字段、`Answer` 和 `ClassName`。
+
+## `list_faq_class`
+
+用途：列出当前站点全部 FAQ 分类。
+
+参数：无参数。输入对象必须为空，不接受额外属性。
+
+返回：
+
+- 每个分类包含 `ClassID`、`Name`、`Icon` 和 `FaqCount`。
+- `FaqCount` 表示当前分类关联的 FAQ 数量。
+- FAQ 分类没有父级或层级结构。
 
 ## `list_news_class`
 
@@ -728,6 +951,298 @@
 - `sort` 只能使用 `asc` 或 `desc`。
 - 返回 `SiteDataAdapter::getProduct()` 产生的产品记录，不改名、不额外裁剪字段。
 
+## `list_gallery`
+
+用途：分页列出当前站点的站点相册，供页面生成、相册图片查询和编辑前核对目标使用。
+
+参数：
+
+```json
+{
+  "keyword": "string，可选，按相册名称 Title 模糊搜索，默认空字符串",
+  "status": "integer 或 0/1 字符串，可选，0=停用，1=启用，不传时返回全部状态",
+  "page": "integer 或正数字符串，可选，从 1 开始，默认 1",
+  "pageSize": "integer 或正数字符串，可选，默认 20，最大 100"
+}
+```
+
+限制和返回：
+
+- 查询范围严格限定为当前 MCP 端点对应的站点和 `GalleryType=sitegallery` 的站点相册。
+- `keyword` 按相册名称 `Title` 模糊搜索。
+- `status` 只能为 `0` 或 `1`；`0` 表示停用，`1` 表示启用；不传时返回全部状态。
+- `page` 必须为正整数，`pageSize` 必须为正整数且不超过 100。
+- 结果按创建时间倒序返回。
+- 返回 `list`、`curpage`、`pagesize`、`pagecount` 和 `count`；`list` 保留后台 `tbl_gallery` 相册记录字段。
+
+调用前不需要写入确认。编辑或删除相册前，应先用本工具核对相册 ID、名称、状态和当前站点归属。
+
+## `list_gallery_item`
+
+用途：分页列出当前站点指定相册中的图片项，供图片页面生成、编辑、排序和删除前核对目标使用。
+
+参数：
+
+```json
+{
+  "galleryId": "integer 或正数字符串，必填，当前站点相册 ID",
+  "keyword": "string，可选，按图片文件名 Image 模糊搜索，默认空字符串",
+  "page": "integer 或正数字符串，可选，从 1 开始，默认 1",
+  "pageSize": "integer 或正数字符串，可选，默认 20，最大 100"
+}
+```
+
+限制和返回：
+
+- `galleryId` 必须属于当前站点的站点相册，否则返回工具错误。
+- `keyword` 按图片文件名 `Image` 模糊搜索。
+- `page` 必须为正整数，`pageSize` 必须为正整数且不超过 100。
+- 结果按 `ShowOrder` 升序、图片项 `ID` 倒序排列。
+- 返回 `list`、`curpage`、`pagesize`、`pagecount`、`outMaxImgNum` 和 `count`；`list` 保留后台 `tbl_galleryitem` 图片项记录字段。
+- `outMaxImgNum=true` 表示当前相册图片数量已达到 50 张上限。
+
+## `add_gallery`
+
+用途：在当前站点新增一个站点相册。相册创建后默认启用。
+
+这是写入工具。调用前必须向用户展示相册名称和描述并取得明确确认。
+
+参数：
+
+```json
+{
+  "name": "案例展示",
+  "description": "公司项目案例图片"
+}
+```
+
+参数说明：
+
+- `name`：必填，非空相册名称。
+- `description`：可选，相册描述，默认空字符串；可以传空字符串。
+- 本工具仅支持相册名称和描述，不支持设置 Banner、状态或相册类型。
+
+返回：
+
+```json
+{
+  "success": true,
+  "GalleryID": 123,
+  "Name": "案例展示",
+  "Description": "公司项目案例图片"
+}
+```
+
+## `add_gallery_item`
+
+用途：向当前站点指定相册新增一张图片。创建第一张图片时，如果相册没有 Banner，系统会自动将该图片设为 Banner。
+
+这是写入工具。调用前必须确认目标相册、图片来源、文件名、标题、描述、跳转链接和排序值。
+
+参数：
+
+```json
+{
+  "galleryId": 123,
+  "fileName": "case-01.jpg",
+  "sourceUrl": "https://example.com/case-01.jpg",
+  "title": "项目案例一",
+  "intro": "项目现场图片",
+  "url": "/cases/case-01.html",
+  "showOrder": 0
+}
+```
+
+参数说明：
+
+- `galleryId`：必填，正整数或正数字符串，必须属于当前站点相册。
+- `fileName`：必填，带扩展名的文件名，只能是文件名，不能包含目录路径。
+- `fileBase64` 与 `sourceUrl`：必须且只能提供一个。`fileBase64` 支持纯 Base64、Base64URL 和 Data URI；`sourceUrl` 仅支持 HTTP/HTTPS。
+- 图片扩展名和实际内容必须匹配，仅支持 `jpg`、`jpeg`、`png`、`gif`、`webp`，图片大小最大 2 MiB。
+- `title`、`intro`、`url`：可选，分别为标题、描述和点击跳转链接，默认空字符串。
+- `showOrder`：可选，非负整数或数字字符串；未传时自动使用当前相册最大排序值加一。
+- 每个相册最多保存 50 张图片。
+
+返回：
+
+```json
+{
+  "success": true,
+  "ItemID": 456,
+  "GalleryID": 123,
+  "Image": "generated-name.jpg",
+  "ImageUrl": "/comdata/{siteId}/gallery/generated-name.jpg",
+  "Title": "项目案例一",
+  "Intro": "项目现场图片",
+  "Url": "/cases/case-01.html",
+  "ShowOrder": 0
+}
+```
+
+## `edit_gallery`
+
+用途：部分修改当前站点相册的名称和描述。未提交的字段保持原值，描述可以清空。
+
+这是写入工具。调用前应先用 `list_gallery` 核对相册，展示相册 ID、当前值和拟修改值，再取得明确确认。
+
+参数：
+
+```json
+{
+  "galleryId": 123,
+  "name": "更新后的案例展示",
+  "description": "更新后的相册说明"
+}
+```
+
+参数说明：
+
+- `galleryId`：必填，当前站点相册 ID。
+- `name`：可选，新的非空相册名称。
+- `description`：可选，新的相册描述；传空字符串可清空。
+- `name` 和 `description` 至少需要提交一个；未提交字段保持原值。
+- 不支持修改 Banner、状态或相册类型。
+
+返回：成功返回当前相册的 `GalleryID`、`Name` 和 `Description`，并包含 `success=true`。
+
+## `edit_gallery_item`
+
+用途：部分修改当前站点相册图片项的图片、标题、描述、跳转链接或排序值。未提交字段保持原值。
+
+这是写入工具。调用前应先用 `list_gallery_item` 核对图片项，展示目标图片和拟修改字段，再取得明确确认。
+
+参数：
+
+```json
+{
+  "itemId": 456,
+  "fileName": "case-01-new.webp",
+  "sourceUrl": "https://example.com/case-01-new.webp",
+  "title": "更新后的标题",
+  "intro": "更新后的描述",
+  "url": "/cases/case-01.html",
+  "showOrder": 1
+}
+```
+
+参数说明：
+
+- `itemId`：必填，当前站点相册图片项 ID。
+- `title`、`intro`、`url`、`showOrder`：可选；字符串字段传空字符串可清空，`showOrder` 必须为非负整数。
+- 替换图片时，`fileName`、`fileBase64`/`sourceUrl` 必须同时提供；`fileBase64` 与 `sourceUrl` 必须且只能提供一个。
+- `fileName` 只能是文件名，不能包含目录路径；图片仅支持 `jpg`、`jpeg`、`png`、`gif`、`webp`，最大 2 MiB，实际内容必须与扩展名匹配。
+- 不提供图片来源时只修改其他提交的字段；至少要提交一个实际更新字段。
+- 如果被替换图片是相册 Banner，系统会同步将 Banner 更新为新图片。
+
+返回：成功返回 `success=true` 以及当前图片项的 `ItemID`、`GalleryID`、`Image`、`ImageUrl`、`Title`、`Intro`、`Url` 和 `ShowOrder`。
+
+## `change_gallery_item_sort`
+
+用途：修改当前站点相册图片项的排序值。只修改目标图片的 `ShowOrder`，不会自动重排同相册其他图片；数值越小越靠前。
+
+这是写入工具。调用前应先用 `list_gallery_item` 核对图片项和当前排序，展示新排序值并取得明确确认。
+
+参数：
+
+```json
+{
+  "itemId": 456,
+  "showOrder": 0
+}
+```
+
+限制和返回：
+
+- `itemId` 必须属于当前站点相册图片项。
+- `showOrder` 必须为非负整数或数字字符串。
+- 成功返回 `success=true`、`ItemID`、`GalleryID` 和新的 `ShowOrder`。
+
+## `del_gallery`
+
+用途：物理删除当前站点指定的站点相册。删除后不可恢复。
+
+参数：
+
+```json
+{
+  "galleryId": 123
+}
+```
+
+删除影响：
+
+- 删除相册记录及其全部图片项记录。
+- 删除当前站点 `gallery` 目录中相册图片项对应的图片文件。
+- 这是不可恢复的物理删除，不会自动保留备份。
+
+调用前必须使用 `list_gallery` 核对当前站点、相册 ID、名称、状态和图片数量，向用户说明图片文件也会被删除，并取得针对该相册的明确永久删除确认。不得复用其他操作的确认。
+
+返回：成功返回 `success=true` 和被删除的 `GalleryID`。
+
+## `del_gallery_item`
+
+用途：物理删除当前站点的一个相册图片项。删除后不可恢复。
+
+参数：
+
+```json
+{
+  "itemId": 456
+}
+```
+
+删除影响：
+
+- 删除图片项数据库记录和对应的当前站点 `gallery` 目录图片文件。
+- 如果删除的图片是相册 Banner，系统会自动切换为同相册其他图片；没有其他图片时清空 Banner。
+- 这是不可恢复的物理删除，不会自动保留备份。
+
+调用前必须使用 `list_gallery_item` 核对图片项所属相册、文件名、图片 URL 和 Banner 影响，展示删除影响并取得针对该图片项的明确永久删除确认。
+
+返回：成功返回 `success=true`、被删除的 `ItemID` 和 `GalleryID`。
+
+## `edit_company_info`
+
+用途：部分更新当前站点的网站名称和公司联系信息。未提交的字段保持原值，显式传入空字符串可以清空字段。
+
+这是写入工具。调用前必须向用户展示当前站点、拟修改字段、原值和新值，并取得明确确认。涉及页眉、页脚、联系我们或结构化数据展示时，应先核对需要使用的字段。
+
+参数：
+
+```json
+{
+  "siteName": "云指建站",
+  "company": "示例科技有限公司",
+  "shortName": "示例科技",
+  "contact": "张三",
+  "tel": "13800000000",
+  "email": "service@example.com",
+  "phone": "010-12345678",
+  "fax": "010-12345679",
+  "address": "北京市朝阳区示例路 1 号",
+  "postCode": "100000"
+}
+```
+
+参数说明：
+
+- 所有字段均为可选字符串，但每次调用至少提交一个字段。
+- `siteName`：网站名称。
+- `company`：公司名称。
+- `shortName`：公司简称。
+- `contact`：联系人。
+- `tel`：业务联系手机。
+- `email`：业务联系邮件。
+- `phone`：固定电话。
+- `fax`：传真号码。
+- `address`：详细地址。
+- `postCode`：邮政编码。
+- 显式传入空字符串可以清空字段；未提交字段保持原值。
+- 本工具不支持公司类型、公司网址、成立时间、地区、主营行业、经营模式、公司简介、公司介绍、备案、地图密钥、访问开关、图标等其他站点配置。
+- 修改成功后会更新站点信息任务状态并清理当前站点相关缓存。
+
+返回：成功返回 `success=true` 以及当前站点的完整信息字段：`siteName`、`company`、`shortName`、`contact`、`tel`、`email`、`phone`、`fax`、`address` 和 `postCode`。
+
 ## `get_online_query_list`
 
 用途：列出当前站点的在线查询配置列表。
@@ -1146,14 +1661,17 @@
 
 1. 准备当前站点 MCP 地址和 Bearer Token。
 2. 使用 `test` 验证认证和连通性。
-3. 使用 `list_page`、`list_news_class` 或 `list_product_class` 查询实际 ID；如果页面需要表单，优先使用 `list_custom_form` 列出已有表单并让用户选择。
-4. 查询文章或产品时，使用 `get_news_list` 或 `get_product_list`；编辑具体内容前，使用 `get_news_info` 或 `get_product_info` 读取详情。
-5. 新增或修改文章分类时，先使用 `list_news_class`；新增或修改产品分类时，先使用 `list_product_class`。
-6. 新增文章或产品前，确认分类；需要素材时先调用 `upload_file` 或 `upload_product_image`。
-7. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
-8. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
-9. 生成或检查页面 HTML、文章或产品内容。
-10. 对写操作展示变更摘要并取得确认；文章和产品需要单独确认发布状态。
-11. 删除页面时，额外核对页面信息并取得针对永久删除的明确确认。
-12. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入。
-13. 根据工具返回的成功信息或错误信息报告结果。
+3. 使用 `list_page`、`list_news_class`、`list_product_class` 或 `list_gallery` 查询实际 ID；如果页面需要表单，优先使用 `list_custom_form` 列出已有表单并让用户选择。
+4. 查询 FAQ 时，使用 `list_faq_class`、`list_faq` 或 `get_faq_info`；编辑 FAQ 前先读取详情，新增或修改分类前先查询分类。
+5. 查询文章或产品时，使用 `get_news_list` 或 `get_product_list`；编辑具体内容前，使用 `get_news_info` 或 `get_product_info` 读取详情。
+6. 查询相册图片时，先使用 `list_gallery` 确认相册，再使用 `list_gallery_item` 查询图片项；编辑、排序或删除前必须读取并核对目标。
+7. 新增或修改文章分类时，先使用 `list_news_class`；新增或修改产品分类时，先使用 `list_product_class`。
+8. 新增文章、产品或相册图片前，确认分类或相册；需要素材时先调用 `upload_file`、`upload_product_image` 或使用相册工具支持的图片来源。
+9. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
+10. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
+11. 修改网站名称或公司联系信息时，先展示 `edit_company_info` 的字段原值与新值并取得确认。
+12. 生成或检查页面 HTML、文章、产品、相册或 FAQ 内容。
+13. 对写操作展示变更摘要并取得确认；文章、产品和 FAQ 需要单独确认发布状态。
+14. 删除页面、FAQ、FAQ 分类、相册或相册图片时，额外核对目标及文件、Banner或关联数据影响，并取得针对永久删除的明确确认。
+15. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入，相册批量图片或文件操作失败后也要核对实际状态。
+16. 根据工具返回的成功信息或错误信息报告结果。
