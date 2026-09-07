@@ -50,6 +50,11 @@
 | `get_news_list` | 查询 | 分页查询已发布文章 |
 | `get_product_info` | 查询 | 获取单个产品基础详情 |
 | `get_product_list` | 查询 | 分页查询已发布产品 |
+| `get_site_seo` | 查询 | 获取当前站点整站 SEO |
+| `edit_site_seo` | 写入 | 修改当前站点整站 SEO |
+| `get_seo_list` | 查询 | 分页查询产品、文章、分类或页面 SEO 列表 |
+| `edit_seo` | 写入 | 设置指定产品、文章、分类或页面 SEO |
+| `edit_seo_batch` | 写入 | 保存产品与文章批量 SEO 规则 |
 | `list_gallery` | 查询 | 分页列出当前站点相册 |
 | `list_gallery_item` | 查询 | 分页列出指定相册图片 |
 | `add_gallery` | 写入 | 新增一个站点相册 |
@@ -951,6 +956,172 @@
 - `sort` 只能使用 `asc` 或 `desc`。
 - 返回 `SiteDataAdapter::getProduct()` 产生的产品记录，不改名、不额外裁剪字段。
 
+## `get_site_seo`
+
+用途：获取当前站点的整站 SEO 信息，用于生成首页、全站公共头部元信息或核对当前整站标题与描述。
+
+参数：无参数。输入对象必须为空，不接受额外属性。
+
+返回：成功返回 `success=true` 和以下字段：
+
+- `SeoTitle`：整站 SEO 标题。
+- `SeoKeyword`：整站 SEO 关键词。
+- `SeoDescription`：整站 SEO 描述。
+- `SiteName`：当前站点名称。
+
+如果对应字段未配置，返回空字符串。
+
+## `edit_site_seo`
+
+用途：部分更新当前站点的整站 SEO。未提交的字段保持原值，显式传入空字符串可以清空字段。
+
+这是写入工具。调用前应先用 `get_site_seo` 读取当前值，向用户展示当前站点、拟修改字段、原值和新值，并取得明确确认。整站 SEO 变更会清理当前站点缓存。
+
+参数：
+
+```json
+{
+  "title": "云指建站 - 专业企业网站建设",
+  "keywords": "云指建站,企业建站,网站建设",
+  "description": "云指建站为企业提供网站建设服务。"
+}
+```
+
+参数说明：
+
+- `title`：可选，整站 SEO 标题。
+- `keywords`：可选，整站 SEO 关键词。
+- `description`：可选，整站 SEO 描述。
+- 三个字段至少提交一个，且都必须是字符串。
+- 标题始终可以更新。
+- 关键词和描述受当前版本 SEO 功能许可限制；无 SEO 许可时，即使提交也不会写入这两个字段。
+- 显式传入空字符串可清空对应字段；未提交字段保持原值。
+
+返回：成功返回 `success=true`、`SeoTitle`、`SeoKeyword`、`SeoDescription` 和 `SiteName`，字段值表示保存后的实际状态。
+
+## `get_seo_list`
+
+用途：分页查询当前站点的 SEO 列表。产品、文章、分类和页面使用不同的目标 ID，编辑前应先使用本工具核对 `seoType`、ID、当前 TDK 和独立分类页面状态。
+
+参数：
+
+```json
+{
+  "seoType": "product",
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+参数说明：
+
+- `seoType`：必填，只能为 `product`、`article`、`productClass`、`articleClass` 或 `page`。
+- `page`：可选，正整数，从 1 开始，默认 1。
+- `pageSize`：可选，正整数，默认 20，最大 100。
+
+各类型的列表语义：
+
+- `product`：产品列表。`ID` 为 `ProductID`，包含 `Name`、`Title`、`Keywords`、`Description` 和后台编辑地址 `Url`；按产品 ID 倒序。
+- `article`：文章列表。`ID` 为 `ArticleID`，`Name` 为文章标题，包含 `Title`、`Keywords`、`Description` 和后台编辑地址 `Url`；按文章 ID 倒序。
+- `productClass`：产品分类列表。按分类树顺序和层级返回 `RecID`、`ClassID`、`ClassParentID`、`Level`、`Name`、`EnableCust`、`Title`、`Keywords`、`Description`；`ID` 为当前站点类型关联的独立分类页面 ID，调用 `edit_seo` 时仍使用 `ClassID`。
+- `articleClass`：文章分类列表，字段含义与 `productClass` 相同。
+- `page`：系统页和自定义页列表。每项包含 `ID`、`Name`、`Title`、`Keywords`、`Description` 和 `Url`；自定义页额外带 `IsCustom=true`。
+
+返回结构：
+
+- 顶层返回 `success`、`list`、`curpage`、`pagesize`、`pagecount` 和 `totalcount`。
+- 空字段会被规范为空字符串。
+- 分类启用了独立分类页面时，返回的 SEO 来自关联页面当前值；未启用独立页面时，返回分类自身保存的 SEO。
+- 页面类型为自定义模板页面时，工具会从当前页面 HTML 的 `<title>`、keywords meta 和 description meta 中读取值。
+
+注意：本工具主要是查询工具，但 `page` 类型按后台内置页面范围读取；许可允许的扩展系统页记录缺失时，读取过程可能补齐缺失的系统页记录。应在调用前向用户说明该查询可能触发系统页初始化。
+
+## `edit_seo`
+
+用途：设置当前站点指定对象的 SEO 标题、关键词和描述。三个文本字段都必填，但允许传空字符串清空。
+
+这是写入工具。调用前应先用 `get_seo_list` 读取目标对象当前 SEO，向用户展示对象类型、ID、名称、URL 和完整 TDK 新值，并取得明确确认。
+
+参数：
+
+```json
+{
+  "seoType": "product",
+  "id": 123,
+  "title": "产品名称 - 网站名称",
+  "keywords": "产品名称,关键词",
+  "description": "产品详细介绍摘要"
+}
+```
+
+参数说明：
+
+- `seoType`：必填，只能为 `product`、`article`、`productClass`、`articleClass` 或 `page`。
+- `id`：必填，正整数或正数字符串。不同类型对应不同 ID：
+  - `product`：当前站点 `ProductID`。
+  - `article`：当前站点 `ArticleID`。
+  - `page`：当前站点页面 ID。
+  - `productClass` 或 `articleClass`：当前站点分类 `ClassID`，不要传列表返回的 `RecID`。
+- `title`、`keywords`、`description`：必填字符串，允许为空字符串。
+- 本工具是整体覆盖 TDK，不是部分更新；三个字段都必须提供。
+
+行为和影响：
+
+- 只能编辑当前站点的产品、文章、分类和页面；目标不存在或属于其他站点时返回工具错误。
+- 修改产品时写入产品 SEO 字段，修改文章时写入文章 SEO 字段。
+- 修改分类时始终更新分类自身 SEO；如果当前站点类型已启用独立分类页面，并且分类关联了有效页面，会同步更新关联页面的 SEO。
+- 修改 `EnableCustomTpl=1` 的自定义页面或独立分类页面时，除更新页面数据外，还会同步替换自定义 HTML 文件中的 `<title>`、keywords meta 和 description meta。如果 HTML 缺少 head 或对应标签，系统会按规则补入。
+- 清空 TDK 只清空目标对象字段和自定义 HTML 对应标签，不会自动生成默认 SEO。
+- 修改成功后会清理当前站点缓存。
+
+返回：成功返回 `success=true` 和 `msg=操作成功`。
+
+## `edit_seo_batch`
+
+用途：保存当前站点的 SEO 批量规则，用于统一控制产品、文章页面 SEO 标题、关键词和描述的生成。
+
+这是写入工具。调用前应先用 `get_seo_list` 或整站 SEO 查询了解当前状态，向用户展示启用状态、自动填充状态、标题分隔符、产品规则、文章规则及对后续 SEO 的影响，并取得明确确认。
+
+参数：
+
+```json
+{
+  "state": true,
+  "isAutoFill": false,
+  "titleSymbol": "-",
+  "product": {
+    "title": "{{Name}} - {{SiteName}}",
+    "keywords": "{{Name}},{{SiteName}}",
+    "description": "{{Name}},{{Class}},{{Label}}"
+  },
+  "article": {
+    "title": "{{Name}} - {{SiteName}}",
+    "keywords": "{{Name}},{{SiteName}}",
+    "description": "{{Name}},{{Class}},{{Label}}"
+  }
+}
+```
+
+参数说明：
+
+- `state`：必填，是否启用批量 SEO，可传布尔值、`0`/`1` 或 `0`/`1` 字符串。
+- `isAutoFill`：必填，是否自动填充 SEO，可传布尔值、`0`/`1` 或 `0`/`1` 字符串。
+- `titleSymbol`：必填，标题拼接分隔符，只能是英文逗号 `,`、下划线 `_`、短横线 `-`、竖线 `|` 或中文顿号 `、`。
+- `product`：必填对象，包含 `title`、`keywords`、`description` 三个产品规则字符串。
+- `article`：必填对象，包含 `title`、`keywords`、`description` 三个文章规则字符串。
+- 规则可使用后台支持的变量。常用示例包括 `{{Name}}`、`{{SiteName}}`、`{{Class}}`、`{{Label}}`；实际可用变量以返回的 `defaultData` 为准。
+
+返回：成功返回 `success=true` 和当前完整配置：
+
+- `defaultData`：产品与文章批量 SEO 可用的默认变量列表。
+- `State`：启用状态。
+- `IsAutoFill`：自动填充状态。
+- `TitleSymbol`：标题分隔符。
+- `Product`：产品规则详情。
+- `Article`：文章规则详情。
+
+若站点还没有批量 SEO 配置，首次保存时会创建该配置。
+
 ## `list_gallery`
 
 用途：分页列出当前站点的站点相册，供页面生成、相册图片查询和编辑前核对目标使用。
@@ -1667,11 +1838,12 @@
 6. 查询相册图片时，先使用 `list_gallery` 确认相册，再使用 `list_gallery_item` 查询图片项；编辑、排序或删除前必须读取并核对目标。
 7. 新增或修改文章分类时，先使用 `list_news_class`；新增或修改产品分类时，先使用 `list_product_class`。
 8. 新增文章、产品或相册图片前，确认分类或相册；需要素材时先调用 `upload_file`、`upload_product_image` 或使用相册工具支持的图片来源。
-9. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
-10. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
-11. 修改网站名称或公司联系信息时，先展示 `edit_company_info` 的字段原值与新值并取得确认。
-12. 生成或检查页面 HTML、文章、产品、相册或 FAQ 内容。
-13. 对写操作展示变更摘要并取得确认；文章、产品和 FAQ 需要单独确认发布状态。
-14. 删除页面、FAQ、FAQ 分类、相册或相册图片时，额外核对目标及文件、Banner或关联数据影响，并取得针对永久删除的明确确认。
-15. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入，相册批量图片或文件操作失败后也要核对实际状态。
-16. 根据工具返回的成功信息或错误信息报告结果。
+9. 处理 SEO 时，先用 `get_site_seo` 或 `get_seo_list` 读取当前值并核对对象 ID；整站修改使用 `edit_site_seo`，产品、文章、分类或页面修改使用 `edit_seo`，批量产品/文章规则使用 `edit_seo_batch`。分类使用 `ClassID`，页面和自定义 HTML 的 title/meta 可能被同步修改，调用前必须确认。
+10. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
+11. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
+12. 修改网站名称或公司联系信息时，先展示 `edit_company_info` 的字段原值与新值并取得确认。
+13. 生成或检查页面 HTML、文章、产品、相册、SEO 或 FAQ 内容。
+14. 对写操作展示变更摘要并取得确认；文章、产品和 FAQ 需要单独确认发布状态。
+15. 删除页面、FAQ、FAQ 分类、相册或相册图片时，额外核对目标及文件、Banner或关联数据影响，并取得针对永久删除的明确确认。
+16. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入，相册批量图片或文件操作失败后也要核对实际状态。
+17. 根据工具返回的成功信息或错误信息报告结果。
