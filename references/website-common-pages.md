@@ -121,4 +121,3 @@
 4. 检查各页面中的联系信息是否已调用系统数据。
 5. 检查各页面的响应式断点是否一致和是否完整。
 6. 检查twig语法是否超出twig1.3版本的范围。
-7. 检查twig语法是否符合 `SKILL.md`、`AIPage.md`、`advanced-data-interface.md` 中的相关规定。
