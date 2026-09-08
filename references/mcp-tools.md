@@ -43,8 +43,8 @@
 | `list_news_class` | 查询 | 列出完整新闻分类树 |
 | `list_faq` | 查询 | 分页列出 FAQ |
 | `list_faq_class` | 查询 | 列出 FAQ 分类 |
-| `list_page` | 查询 | 分页列出首页和自定义页面 |
-| `get_page_info` | 查询 | 获取当前站点 AI 自定义页面的页面信息和源码 |
+| `list_page` | 查询 | 分页列出首页和AI自由页 |
+| `get_page_info` | 查询 | 获取当前站点AI自由页的页面信息和源码 |
 | `list_product_class` | 查询 | 列出完整产品分类树 |
 | `get_news_info` | 查询 | 获取单篇文章详情 |
 | `get_news_list` | 查询 | 分页查询已发布文章 |
@@ -87,7 +87,7 @@
 | `save_ai_page` | 写入 | 新建或更新单个自定义 HTML 页面 |
 | `save_ai_page_batch` | 写入 | 通过 Base64 ZIP 批量导入页面和静态资源 |
 | `del_page` | 高风险删除 | 永久删除当前站点的一张 AI 页面 |
-| `set_home_page` | 写入 | 将自定义页面设为首页 |
+| `set_home_page` | 写入 | 将AI自由页设为首页 |
 | `set_page_friendlyurl` | 写入 | 新增、修改或删除页面友好 URL |
 | `clear_site_cache` | 维护操作 | 清理当前站点缓存 |
 
@@ -683,7 +683,7 @@
 
 ## `list_page`
 
-用途：按站点后台页面列表的相同范围，列出当前站点的首页和自定义页面。
+用途：按站点后台页面列表的相同范围，列出当前站点的首页和AI自由页。
 
 参数：
 
@@ -697,7 +697,7 @@
 
 限制和返回：
 
-- 仅包含当前站点、站点类型的首页和自定义页面。
+- 仅包含当前站点、站点类型的首页和AI自由页。
 - 仅返回 `PageType` 为 `1` 和 `99` 的页面。
 - 排除城市分站页面和扩展页面。
 - 按 `PageType`、`ID` 升序排列。
@@ -719,7 +719,7 @@
 限制：
 
 - `pageId` 必须是当前站点页面 ID，最小值为 1。
-- 仅支持 `EnableCustomTpl=1` 的自定义页面。
+- 仅支持 `EnableCustomTpl=1` 的AI自由页。
 - 非 AI 页面会返回“此页面不是AI页面，不支持获取信息”。
 - 输入对象不接受额外属性。
 
@@ -1070,7 +1070,7 @@
 - 只能编辑当前站点的产品、文章、分类和页面；目标不存在或属于其他站点时返回工具错误。
 - 修改产品时写入产品 SEO 字段，修改文章时写入文章 SEO 字段。
 - 修改分类时始终更新分类自身 SEO；如果当前站点类型已启用独立分类页面，并且分类关联了有效页面，会同步更新关联页面的 SEO。
-- 修改 `EnableCustomTpl=1` 的自定义页面或独立分类页面时，除更新页面数据外，还会同步替换自定义 HTML 文件中的 `<title>`、keywords meta 和 description meta。如果 HTML 缺少 head 或对应标签，系统会按规则补入。
+- 修改 `EnableCustomTpl=1` 的AI自由页或独立分类页面时，除更新页面数据外，还会同步替换自定义 HTML 文件中的 `<title>`、keywords meta 和 description meta。如果 HTML 缺少 head 或对应标签，系统会按规则补入。
 - 清空 TDK 只清空目标对象字段和自定义 HTML 对应标签，不会自动生成默认 SEO。
 - 修改成功后会清理当前站点缓存。
 
@@ -1665,11 +1665,11 @@
 参数规则：
 
 - `pageId=0`：新建页面。
-- `pageId` 为正数：更新已有自定义页面。
+- `pageId` 为正数：更新已有AI自由页。
 - `pageId` 可传整数或只包含数字的字符串。
 - `html` 必须是完整 HTML 源码。
 - 远程图片 URL 和支持的内联 Base64 资源会按站点后台编辑器规则处理。
-- `urlPath` 为普通自定义页面的可选友好 URL，例如 `about.html` 或 `products/list.html`；开头斜杠会被规范化，不安全路径会被拒绝。
+- `urlPath` 为普通AI自由页的可选友好 URL，例如 `about.html` 或 `products/list.html`；开头斜杠会被规范化，不安全路径会被拒绝。
 - `autoSetIndex=true` 仅在 `pageId=0`、`urlPath=index.html` 且当前站点存在可替换首页时生效，默认值为 `false`。
 
 返回和失败行为：
@@ -1705,7 +1705,7 @@
 - 也接受 MIME 类型为 `application/zip`、`application/x-zip-compressed` 或 `application/octet-stream` 的 Data URI。
 - Base64 中的空白字符会被忽略。
 - 每个 HTML 文件以压缩包内的相对路径作为友好 URL，例如 `about/index.html`。
-- `overWrite=true` 时，相同 URL 的已有自定义页面会使用原页面 ID 覆盖更新。
+- `overWrite=true` 时，相同 URL 的已有AI自由页会使用原页面 ID 覆盖更新。
 - `overWrite=false` 时，只要 URL 已存在就导入失败。
 - 已有系统页、产品页、文章页或无效页面目标不会被覆盖。
 - `autoSetIndex=true` 时，压缩包根目录的 `index.html` 在全部页面处理完成后设为首页。
@@ -1723,7 +1723,7 @@
 调用前必须明确确认：
 
 - ZIP 中将导入哪些页面和资源。
-- `overWrite` 是否覆盖相同 URL 的自定义页面。
+- `overWrite` 是否覆盖相同 URL 的AI自由页。
 - 是否将根目录 `index.html` 设为首页。
 - 用户已知中途失败不会自动回滚。
 
@@ -1743,7 +1743,7 @@
 
 - `pageId` 必须是当前站点页面 ID，最小值为 1。
 - `pageId` 可传整数或匹配 `^[1-9]\d*$` 的数字字符串。
-- 仅支持 `EnableCustomTpl=1` 且 `PageType=99` 的 AI 自定义页面。
+- 仅支持 `EnableCustomTpl=1` 且 `PageType=99` 的AI自由页。
 - 其他页面会返回“此页面不是AI页面，不支持删除”。
 - 输入对象不接受额外属性。
 
@@ -1780,7 +1780,7 @@
 
 ## `set_home_page`
 
-用途：将当前站点的一张自定义页面设为首页。
+用途：将当前站点的一张AI自由页设为首页。
 
 参数：
 
@@ -1792,7 +1792,7 @@
 
 限制：
 
-- `pageId` 必须是当前站点中已存在的自定义页面。
+- `pageId` 必须是当前站点中已存在的AI自由页。
 - `pageId` 最小值为 1。
 - 系统页面和当前首页不能设置。
 - 操作会调整页面类型、更新页面模块路由并清理相关缓存。
@@ -1803,7 +1803,7 @@
 
 ## `set_page_friendlyurl`
 
-用途：为当前站点的一张自定义页面新增、修改或删除友好 URL。
+用途：为当前站点的一张AI自由页新增、修改或删除友好 URL。
 
 参数：
 
@@ -1816,7 +1816,7 @@
 
 限制：
 
-- `pageId` 必须对应当前站点自定义页面，最小值为 1。
+- `pageId` 必须对应当前站点AI自由页，最小值为 1。
 - `urlPath` 仅允许字母、数字、斜杠、连字符、下划线和可选的 `.html` 后缀。
 - 开头的斜杠会被移除。
 - 传入空字符串会删除当前页面的友好 URL，并恢复默认重写 URL。
