@@ -55,6 +55,10 @@
 | `get_seo_list` | 查询 | 分页查询产品、文章、分类或页面 SEO 列表 |
 | `edit_seo` | 写入 | 设置指定产品、文章、分类或页面 SEO |
 | `edit_seo_batch` | 写入 | 保存产品与文章批量 SEO 规则 |
+| `list_seo_redirect` | 查询 | 列出当前站点 301 跳转规则 |
+| `add_seo_redirect` | 写入 | 新增当前站点 301 跳转规则 |
+| `edit_seo_redirect` | 写入 | 修改当前站点 301 跳转规则 |
+| `del_seo_redirect` | 高风险删除 | 永久删除当前站点 301 跳转规则 |
 | `list_gallery` | 查询 | 分页列出当前站点相册 |
 | `list_gallery_item` | 查询 | 分页列出指定相册图片 |
 | `add_gallery` | 写入 | 新增一个站点相册 |
@@ -67,6 +71,7 @@
 | `edit_company_info` | 写入 | 修改网站名称和公司联系信息 |
 | `get_online_query_list` | 查询 | 分页查询在线查询配置列表 |
 | `get_enquiry_form_id` | 查询/可能写入 | 获取当前站点在线询盘表单 ID |
+| `list_enquiry_records` | 查询 | 分页查询当前站点在线询盘记录 |
 | `list_sqlite_db` | 查询 | 列出当前站点的 SQLite 数据库 |
 | `list_sqlite_tables` | 查询 | 列出指定数据库的用户数据表 |
 | `get_sqlite_table_info` | 查询 | 获取指定表的定义信息 |
@@ -1122,6 +1127,110 @@
 
 若站点还没有批量 SEO 配置，首次保存时会创建该配置。
 
+## SEO 301 跳转通用规则
+
+- 301 跳转规则只作用于当前 MCP 端点对应的站点，不能混用其他站点的规则。
+- 本组工具只管理 `RedirectType=1` 的 301 跳转，不处理自定义 404 配置。
+- `rawUrl` 必须是站内来源路径且以 `/` 开头；来源地址带扩展名时，仅允许 `html` 或 `htm`。
+- `targetUrl` 必须是站内路径或以 `http://`、`https://` 开头的地址；外部地址带扩展名时，仅允许 `html`。
+- 来源地址不能与目标地址相同。
+- 同一站点的来源地址不能重复；目标地址不能已经是其他规则的来源地址，以避免跳转冲突和死循环。
+- 修改时会排除当前记录再进行重复来源和目标冲突检查。
+- 新增、修改、删除成功后都会清理当前站点的 301 缓存。
+- 写操作前必须先使用 `list_seo_redirect` 核对当前规则，并向用户展示当前站点、来源地址、目标地址及对搜索引擎和旧链接的影响。
+
+## `list_seo_redirect`
+
+用途：列出当前站点的 301 跳转规则，供新增、修改、删除和生成页面跳转说明前核对现有规则使用。
+
+参数：无参数。输入对象必须为空，不接受额外属性。
+
+返回：
+
+- 成功返回 `success=true` 和 `list`。
+- 只返回当前站点 `RedirectType=1` 的规则，不返回自定义 404 配置。
+- 结果按创建时间倒序排列。
+- 每条规则包含 `ID`、`SiteID`、`RawUrl`、`TargetUrl`、`RedirectType` 和 `CrTime`。
+- `RawUrl` 为原始来源地址，`TargetUrl` 为跳转目标地址。
+
+## `add_seo_redirect`
+
+用途：为当前站点新增一条 301 跳转规则，用于将旧地址或失效地址跳转到新地址。
+
+这是写入工具。调用前必须向用户展示当前站点、来源地址、目标地址、扩展名规则、重复来源限制和 301 缓存清理影响，并取得明确确认。
+
+参数：
+
+```json
+{
+  "rawUrl": "/old-page.html",
+  "targetUrl": "/new-page.html"
+}
+```
+
+参数说明：
+
+- `rawUrl`：必填，原始来源地址，必须以 `/` 开头。
+- `targetUrl`：必填，跳转目标地址，可以是站内路径或 HTTP/HTTPS 地址。
+- 来源地址带扩展名时只允许 `html`、`htm`。
+- 外部目标地址带扩展名时只允许 `html`。
+- 来源地址不能与目标地址相同。
+- 来源地址不能与当前站点已有规则重复。
+- 目标地址不能已经是当前站点其他规则的来源地址。
+- 保存成功后清理 301 缓存。
+
+返回：成功返回 `success=true` 和新增的 `redirect` 对象；该对象包含 `ID`、`SiteID`、`RawUrl`、`TargetUrl`、`RedirectType` 和 `CrTime`。
+
+## `edit_seo_redirect`
+
+用途：修改当前站点的一条 301 跳转规则。`rawUrl` 和 `targetUrl` 必须同时提交，这是对来源与目标的整体更新，不是部分更新。
+
+这是写入工具。调用前应先用 `list_seo_redirect` 读取当前规则，向用户展示当前站点、记录 ID、当前来源地址、当前目标地址、新来源地址、新目标地址及对旧链接的影响，并取得明确确认。
+
+参数：
+
+```json
+{
+  "redirectId": 12,
+  "rawUrl": "/renamed-page.html",
+  "targetUrl": "https://example.com/renamed-page.html"
+}
+```
+
+参数说明：
+
+- `redirectId`：必填，正整数或正数字符串，必须是当前站点 `RedirectType=1` 的规则 ID。
+- `rawUrl`：必填，新的原始来源地址，必须以 `/` 开头。
+- `targetUrl`：必填，新的跳转目标地址，可以是站内路径或 HTTP/HTTPS 地址。
+- 地址校验规则与 `add_seo_redirect` 相同。
+- 修改时会排除当前记录，检查来源重复和目标成为其他规则来源等冲突。
+- 保存成功后清理 301 缓存。
+
+返回：成功返回 `success=true` 和修改后的 `redirect` 对象；该对象包含 `ID`、`SiteID`、`RawUrl`、`TargetUrl`、`RedirectType` 和 `CrTime`。
+
+## `del_seo_redirect`
+
+用途：物理删除当前站点的一条 301 跳转规则，删除后不可恢复。
+
+参数：
+
+```json
+{
+  "redirectId": 12
+}
+```
+
+参数和删除限制：
+
+- `redirectId`：必填，正整数或正数字符串。
+- `redirectId` 必须属于当前站点，且记录类型必须是 `RedirectType=1`。
+- 本工具不能删除自定义 404 配置。
+- 删除是物理删除，完成后会清理 301 缓存。
+
+调用前必须使用 `list_seo_redirect` 核对当前站点、规则 ID、来源地址和目标地址，向用户说明删除后旧来源地址将不再自动跳转，搜索引擎和外链访问会回到来源地址的实际页面或 404 行为，并取得针对该规则的明确永久删除确认。不得复用其他操作的确认。
+
+返回：成功返回 `success=true` 和被删除的 `redirectId`。
+
 ## `list_gallery`
 
 用途：分页列出当前站点的站点相册，供页面生成、相册图片查询和编辑前核对目标使用。
@@ -1482,6 +1591,40 @@
 - 首次调用可能产生数据写入。
 - 调用前应说明可能自动初始化表单和字段，并取得用户同意。
 
+## `list_enquiry_records`
+
+用途：分页列出当前站点的在线询盘记录，供页面或后台展示、审核状态查询和客户跟进核对使用。
+
+参数：
+
+```json
+{
+  "keyword": "客户名称",
+  "status": -1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+参数说明：
+
+- `keyword`：可选，按表单提交数据关键字搜索，默认空字符串。
+- `status`：可选，审核状态：`-1` 全部，`0` 未审核，`1` 已审核，默认 `-1`。
+- `page`：可选，正整数，从 1 开始，默认 1。
+- `pageSize`：可选，正整数，默认 20，最大 100。
+
+返回：
+
+- 成功返回 `success=true`、`list`、`curpage`、`pagesize`、`pagecount` 和 `total`。
+- 结果按提交时间倒序排列。
+- 每条记录包含 `form_info` 和 `product_list`：
+  - `form_info`：包含 `ID`、`Status`、`CrTime`，以及当前在线询盘表单可见字段的“字段名称:提交值”。
+  - `product_list`：询盘产品数组，保留产品名称、图片、规格、数量等原始字段；没有产品时为空数组。
+- `Status` 表示询盘审核状态，具体取值应与后台询盘记录一致。
+- 查询范围严格限定为当前 MCP 端点对应的站点。
+
+注意：本工具按当前站点在线询盘表单读取记录。如果站点尚未配置有效的在线询盘表单，底层表单查询逻辑可能先初始化默认“在线询盘”表单和字段，因此首次查询可能产生配置写入；需要严格只读时，应先用 `get_enquiry_form_id` 确认表单状态并取得用户同意。
+
 ## `list_sqlite_tables`
 
 用途：列出指定 SQLite 数据库中的用户数据表。
@@ -1834,16 +1977,17 @@
 2. 使用 `test` 验证认证和连通性。
 3. 使用 `list_page`、`list_news_class`、`list_product_class` 或 `list_gallery` 查询实际 ID；如果页面需要表单，优先使用 `list_custom_form` 列出已有表单并让用户选择。
 4. 查询 FAQ 时，使用 `list_faq_class`、`list_faq` 或 `get_faq_info`；编辑 FAQ 前先读取详情，新增或修改分类前先查询分类。
-5. 查询文章或产品时，使用 `get_news_list` 或 `get_product_list`；编辑具体内容前，使用 `get_news_info` 或 `get_product_info` 读取详情。
+5. 查询文章或产品时，使用 `get_news_list` 或 `get_product_list`；编辑具体内容前，使用 `get_news_info` 或 `get_product_info` 读取详情。需要查看在线询盘提交记录时，使用 `list_enquiry_records`。
 6. 查询相册图片时，先使用 `list_gallery` 确认相册，再使用 `list_gallery_item` 查询图片项；编辑、排序或删除前必须读取并核对目标。
 7. 新增或修改文章分类时，先使用 `list_news_class`；新增或修改产品分类时，先使用 `list_product_class`。
 8. 新增文章、产品或相册图片前，确认分类或相册；需要素材时先调用 `upload_file`、`upload_product_image` 或使用相册工具支持的图片来源。
 9. 处理 SEO 时，先用 `get_site_seo` 或 `get_seo_list` 读取当前值并核对对象 ID；整站修改使用 `edit_site_seo`，产品、文章、分类或页面修改使用 `edit_seo`，批量产品/文章规则使用 `edit_seo_batch`。分类使用 `ClassID`，页面和自定义 HTML 的 title/meta 可能被同步修改，调用前必须确认。
-10. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
-11. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
-12. 修改网站名称或公司联系信息时，先展示 `edit_company_info` 的字段原值与新值并取得确认。
-13. 生成或检查页面 HTML、文章、产品、相册、SEO 或 FAQ 内容。
-14. 对写操作展示变更摘要并取得确认；文章、产品和 FAQ 需要单独确认发布状态。
-15. 删除页面、FAQ、FAQ 分类、相册或相册图片时，额外核对目标及文件、Banner或关联数据影响，并取得针对永久删除的明确确认。
-16. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入，相册批量图片或文件操作失败后也要核对实际状态。
-17. 根据工具返回的成功信息或错误信息报告结果。
+10. 管理 301 跳转时，先使用 `list_seo_redirect` 核对当前规则和 ID；新增使用 `add_seo_redirect`，修改使用 `edit_seo_redirect`，删除前额外确认来源地址、目标地址和旧链接影响，再使用 `del_seo_redirect`。
+11. 修改已有 AI 页面时，使用 `get_page_info` 获取页面信息和 `SourceCode`。
+12. 需要新建或修改普通自定义表单时，先确认表单名称、字段、通知/支付配置和删除影响；确认后调用 `add_custom_form` 或 `edit_custom_form`。
+13. 修改网站名称或公司联系信息时，先展示 `edit_company_info` 的字段原值与新值并取得确认。
+14. 生成或检查页面 HTML、文章、产品、相册、SEO、跳转规则或 FAQ 内容。
+15. 对写操作展示变更摘要并取得确认；文章、产品和 FAQ 需要单独确认发布状态。
+16. 删除页面、FAQ、FAQ 分类、相册、相册图片或 301 跳转规则时，额外核对目标及文件、Banner、跳转或关联数据影响，并取得针对永久删除的明确确认。
+17. 调用对应写入、删除或维护工具；表单写入失败后重新查询确认是否产生部分写入，相册批量图片或文件操作失败后也要核对实际状态。
+18. 根据工具返回的成功信息或错误信息报告结果。
