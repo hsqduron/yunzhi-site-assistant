@@ -116,7 +116,7 @@ when_to_use: "当用户说“帮我建个网站”“做个官网/落地页”�
 
 ## 7. 内容与资源管理要点
 
-- **文章**：`list_news_class` 查分类 → `add_news`（默认 `status=1` 立即发布；用户未明确要求发布用 `status=0` 草稿）。缩略图先 `upload_file` 取相对URL作 `previewImage`（不需要域名部分）。改前 `get_news_info` 再 `edit_news` 部分更新（至少提交一个实际字段）。
+- **文章**：`list_news_class` 查分类 → `add_news`（默认 `status=1` 立即发布；用户未明确要求发布用 `status=0` 草稿，可用 `descriptor` 写入摘要）。缩略图先 `upload_file` 取相对URL作 `previewImage`（不需要域名部分）。改前 `get_news_info` 再 `edit_news` 部分更新（至少提交一个实际字段）。
 - **产品**：`list_product_class` 查分类；主图先 `upload_product_image` 取 `fileName`/`SmallFileName` 原样传入 `add_product.mainImage`。`add_product` 立即发布，不支持 SKU/规格/高级字段。改前 `get_product_info` 再 `edit_product`：`mainImage` 省略=保留原图，`null`/空对象=清空。
 - **上传**：`upload_file` / `upload_product_image` 每次仅提供一种来源（Base64 或远程 URL）；`upload_product_image` 不会自动绑定产品。
 - **清缓存**：`clear_site_cache` 前说明并获确认。
@@ -159,7 +159,7 @@ when_to_use: "当用户说“帮我建个网站”“做个官网/落地页”�
 - 向用户展示表单 `ID`+`Name`，用户选定后才 `FnGetCustomForm(表单ID)` 生成；不得猜 ID 或绑任意表单。
 - 无可用表单时告知用户先在后台建；除非用户明确要求，不降级为静态。
 - 用户明确要求新建或修改普通自定义表单时，写入前取得确认，再使用 `add_custom_form` 或 `edit_custom_form`；完整参数、字段类型、临时字段 ID、计算/联动和删除语义见 `references/mcp-tools.md`。
-- `add_custom_form` 只创建 `FormType=CustomForm`，`edit_custom_form` 只修改已有普通自定义表单，不能用于在线询盘表单或其他特殊表单。
+- `add_custom_form` 只创建 `FormType=CustomForm`；`edit_custom_form` 可修改已有 `FormType=CustomForm` 普通自定义表单或 `FormType=EnquiryForm` 询盘表单，不能修改其他特殊表单。询盘表单 ID 先用 `get_enquiry_form_id` 获取，修改前确认其页面引用影响。
 - 表单和字段写入失败时可能已完成部分写入，不承诺自动回滚；失败后重新查询确认实际状态。
 - 以基础代码为起点，仅改样式/真实表单 ID/字段展示结构；保留隐藏提交字段、`action`、`enctype`、字段元数据、校验脚本、AJAX 提交、文件上传、短信验证、图形验证码、省市区三级联动。不得用简化版替换校验/提交逻辑。
 - 字段类型用文档规定控件（单行/多行/单选/下拉/多选/图片/文件/多图上传/地区/日期时间/静态文本）；上传字段保留 `col{{ field.ID }}` 隐藏字段与原上传接口。

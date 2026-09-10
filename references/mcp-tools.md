@@ -32,7 +32,7 @@
 | `test` | 查询/诊断 | 测试 MCP 连通性并回显请求参数 |
 | `list_custom_form` | 查询 | 列出当前站点普通自定义表单 |
 | `add_custom_form` | 写入 | 新增普通自定义表单及字段 |
-| `edit_custom_form` | 写入 | 修改普通自定义表单、字段或删除字段 |
+| `edit_custom_form` | 写入 | 修改普通自定义表单或询盘表单、字段或删除字段 |
 | `add_faq` | 写入 | 新增 FAQ |
 | `add_faq_class` | 写入 | 新增 FAQ 分类 |
 | `del_faq` | 高风险删除 | 永久删除 FAQ |
@@ -140,7 +140,7 @@
 
 ## `add_custom_form`
 
-用途：为当前站点新增一个普通自定义表单，并可在同一次调用中新增字段。工具固定写入 `FormType=CustomForm`，不能创建在线询盘表单、产品留言表单或其他特殊表单。
+用途：为当前站点新建一个普通自定义表单，并可在同一次调用中新增字段。本工具只负责新建，不提供修改模式，新建记录的 `FormType` 固定为 `CustomForm`，不能创建在线询盘表单、产品留言表单或其他特殊表单。修改已有普通自定义表单或询盘表单请使用 `edit_custom_form`。
 
 这是写入工具。调用前必须向用户展示表单名称、字段列表、通知配置、支付配置及可能的副作用，并取得明确确认。
 
@@ -219,12 +219,13 @@
 - 表单创建、字段写入不是跨调用事务；调用失败时已经创建的表单或字段不会自动回滚，失败后应重新查询确认实际状态。
 - 不得把 Token 放入工具参数；认证由 MCP 客户端通过请求头完成。
 - 创建后页面接入仍须使用 `list_custom_form`/用户选择的表单 ID 和 `FnGetCustomForm(表单ID)`，不得猜测 ID。
+- `add_custom_form` 的输入 schema 没有 `formId` 或更新模式；即使工具元数据提到修改场景，实际也只能新建普通自定义表单，修改已有普通表单或询盘表单必须调用 `edit_custom_form`。
 
 ## `edit_custom_form`
 
-用途：修改当前站点一个普通自定义表单的主体配置，新增或更新字段，以及按需删除字段。仅支持已有 `FormType=CustomForm` 的表单。
+用途：修改当前站点一个普通自定义表单或询盘表单的主体配置，新增或更新字段，以及按需删除字段。仅支持已有 `FormType=CustomForm` 或 `FormType=EnquiryForm` 的表单。
 
-这是写入工具。调用前必须向用户展示当前站点、表单 ID、表单名称、拟修改字段、删除字段及通知/支付影响，并取得明确确认。
+这是写入工具。调用前必须向用户展示当前站点、表单 ID、表单名称、表单类型、拟修改字段、删除字段及通知/支付影响，并取得明确确认。修改询盘表单前还应明确提示该表单可能正在被产品询盘、联系我们或其他页面使用。
 
 参数：
 
@@ -254,7 +255,7 @@
 
 参数说明：
 
-- `formId`：必填，当前站点普通自定义表单 ID，必须是正整数或正数字符串。
+- `formId`：必填，当前站点普通自定义表单或询盘表单 ID，必须是正整数或正数字符串。
 - `name`、`intro`、`enableEmailNotification`、`enableSmsNotification`、`receivedEmail`、`isPay`、`payAmount`、`payTips`、`payType`、`calculations`：可选，仅提交需要修改的表单主体字段。
 - `fields`：可选。带数字 `id` 的字段表示更新已有字段；带 `New` 开头临时 ID 或不带 `id` 的字段表示新增字段。字段数组顺序决定本次提交字段的 `ShowOrder`；未列出的已有字段保持不变。
 - `deleteFieldIds`：可选，要删除的当前表单字段 ID 数组。字段不能同时出现在 `fields` 和 `deleteFieldIds` 中。
@@ -275,7 +276,7 @@
   "success": true,
   "FormID": 123,
   "Name": "更新后的报名表",
-  "FormType": "CustomForm",
+  "FormType": "CustomForm 或工具实际返回的表单类型",
   "fieldCount": 2,
   "fields": [
     {
@@ -298,7 +299,9 @@
 
 - 更新表单、字段和删除字段不是跨调用事务；中途失败时已完成的修改不会自动回滚，失败后应使用 `list_custom_form` 或后台查询确认实际状态。
 - 修改页面中的表单代码前，仍需先按表单规则读取并确认当前表单，不能用静态表单替代系统表单。
-- 这两个工具都不能修改在线询盘表单；在线询盘表单使用 `get_enquiry_form_id`。
+- `add_custom_form` 只能创建 `FormType=CustomForm` 的普通自定义表单，不能创建在线询盘表单或其他特殊表单。
+- `edit_custom_form` 同时支持 `FormType=CustomForm` 和 `FormType=EnquiryForm`；在线询盘表单 ID 应先使用 `get_enquiry_form_id` 获取并确认。
+- 修改询盘表单字段可能影响所有引用该表单的产品详情、联系我们和其他询盘页面，执行前必须检查并明确确认影响范围。
 
 ## `add_faq`
 
@@ -559,6 +562,7 @@
   "seoTitle": "string，可选，SEO 标题",
   "keywords": "string，可选，SEO 关键词",
   "description": "string，可选，SEO 描述",
+  "descriptor": "string，可选，文章摘要",
   "showOrder": "integer，可选，最小值 0，默认 0"
 }
 ```
@@ -571,6 +575,7 @@
 - 非零分类必须属于当前站点，应先用 `list_news_class` 验证。
 - `status=0` 为草稿，`status=1` 为立即发布；工具默认立即发布。
 - 使用 `previewImage` 时，先调用 `upload_file` 上传图片并使用其返回的绝对 URL。
+- `descriptor` 可选，用于保存文章摘要，默认空字符串。
 - 成功返回 `ArticleID`、`Title` 和 `Url`。
 
 调用前必须确认标题、HTML 内容、分类、发布时间和发布状态。用户未明确要求发布时，使用 `status=0` 创建草稿。
@@ -595,6 +600,7 @@
   "seoTitle": "string，可选，SEO 标题",
   "keywords": "string，可选，SEO 关键词",
   "description": "string，可选，SEO 描述",
+  "descriptor": "string，可选，文章摘要，传空字符串可清空",
   "showOrder": "integer，可选，最小值 0，文章排序值"
 }
 ```
@@ -609,6 +615,7 @@
 - 文章分类 ID 应先通过 `list_news_class` 验证。
 - `title` 传入时不能为空。
 - `content` 传空字符串会清空文章内容。
+- `descriptor` 传空字符串会清空文章摘要。
 
 调用前应先使用 `get_news_info` 读取当前文章，向用户展示将修改的字段并获得确认。涉及 `status=1` 时，明确提示文章会发布。
 
