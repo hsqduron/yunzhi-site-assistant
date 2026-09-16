@@ -154,7 +154,7 @@ FAQ 属于后台可维护内容，应使用 `FnGetFaqClassList` 和 `FnGetFaqLis
 
 ### 36. 表单示例中的哪些内容不能删除？
 
-隐藏字段、`action`、`enctype`、字段元数据、校验脚本、AJAX 提交、上传、短信和验证码逻辑。
+隐藏字段、`action`、`enctype`、字段元数据、校验脚本、AJAX 提交、上传、短信/邮箱和图形验证码逻辑。
 
 ### 37. 文件上传为什么需要 `enctype`？
 
@@ -171,6 +171,14 @@ FAQ 属于后台可维护内容，应使用 `FnGetFaqClassList` 和 `FnGetFaqLis
 ### 40. 多个表单如何避免冲突？
 
 每个表单使用独立的样式类、校验选择器、变量和事件处理逻辑。
+
+### 40.1. 如何配置邮箱真实性验证？
+
+字段使用 `ValidateType=6` 并开启 `IsEmailValidate=1`。页面显示邮箱验证码输入框，验证码字段名为 `col{{ field.ID }}_vcode`，发送时调用 `/index.php?c=validatecode&a=sendEmailCode&email=邮箱地址`；不要把邮箱验证接到短信验证码接口上。提交时保留邮箱字段和验证码字段，由后端完成最终校验。
+
+### 40.2. 公司名、姓名、邮箱三种字段类型如何渲染？
+
+`FieldType=13`（公司名）、`FieldType=14`（姓名）和 `FieldType=15`（邮箱）是带业务语义的单行文本字段，实际都使用 `<input type="text">` 渲染。它们可以继续使用 `Placeholder`、`ValidateType`、`IsSmsValidate` 和 `IsEmailValidate` 等单行文本属性；不要为这三种类型另设计一套控件或提交格式。
 
 ## 六、产品询盘
 

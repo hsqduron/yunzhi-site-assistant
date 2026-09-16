@@ -187,11 +187,12 @@
 - `id`：可选。新增字段只能使用 `New` 开头的临时 ID，例如 `NewName`；不能使用已有数字 ID。临时 ID 可被 `fieldValuesRel`、`calculationsItem` 和 `calculations` 引用，保存后会替换为真实字段 ID。
 - `name`：必填，字段名称，1 至 50 个字符。
 - `intro`、`placeholder`、`icon`、`extendName`：可选字符串。
-- `fieldType`：可选，`1` 单行文本、`2` 多行文本、`3` 单选、`4` 下拉、`5` 多选、`6` 图片上传、`7` 地区、`8` 时间、`9` 文件上传、`10` 多图上传、`11` 静态文本。
+- `fieldType`：可选，`1` 单行文本、`2` 多行文本、`3` 单选、`4` 下拉、`5` 多选、`6` 图片上传、`7` 中国国内地区、`8` 时间、`9` 文件上传、`10` 多图上传、`11` 静态文本、`12` 国际地区、`13` 公司名（单行文本）、`14` 姓名（单行文本）、`15` 邮箱（单行文本）。
 - `fieldValues`：可选，单选、下拉、多选的选项，使用 `|` 或换行分隔；保存时会规范为 `|` 分隔。
-- `isRequire`、`isShow`、`isSmsValidate`、`isShowTitle`、`pcShowType`、`mobileShowType`：可选，只能为 `0` 或 `1`。
-- `validateType`：可选，`0` 不验证、`1` 文本、`2` 数字、`3` 手机、`4` 固话、`5` 固话或手机、`6` 邮箱、`7` 身份证；仅文本字段和多行文本字段有效，其他字段必须为 `0`。
-- `isSmsValidate=1` 仅适用于 `fieldType=1` 且 `validateType=3` 的手机号字段，并会自动设置为必填。
+- `isRequire`、`isShow`、`isSmsValidate`、`isEmailValidate`、`isShowTitle`、`pcShowType`、`mobileShowType`：可选，只能为 `0` 或 `1`。
+- `validateType`：可选，`0` 不验证、`1` 文本、`2` 数字、`3` 手机、`4` 固话、`5` 固话或手机、`6` 邮箱、`7` 身份证；仅 `fieldType=1/13/14/15` 的单行文本类和 `fieldType=2` 多行文本有效，其他字段必须为 `0`。
+- `isSmsValidate=1` 仅适用于 `fieldType=1/13/14/15` 且 `validateType=3` 的手机号字段，并会自动设置为必填。
+- `isEmailValidate=1` 仅适用于 `fieldType=1/13/14/15` 且 `validateType=6` 的邮箱字段，并会自动设置为必填；页面需要配合邮箱验证码输入框和 `sendEmailCode` 接口完成真实性验证，不能使用短信接口。
 - `fieldValuesRel`、`calculationsItem`：可选，可传 JSON 字符串、对象或数组，用于选项联动和字段计算。
 
 返回：
@@ -208,6 +209,7 @@
       "ID": 456,
       "Name": "姓名",
       "FieldType": 1,
+      "IsEmailValidate": 0,
       "ShowOrder": 0
     }
   ]
@@ -260,7 +262,7 @@
 - `fields`：可选。带数字 `id` 的字段表示更新已有字段；带 `New` 开头临时 ID 或不带 `id` 的字段表示新增字段。字段数组顺序决定本次提交字段的 `ShowOrder`；未列出的已有字段保持不变。
 - `deleteFieldIds`：可选，要删除的当前表单字段 ID 数组。字段不能同时出现在 `fields` 和 `deleteFieldIds` 中。
 
-字段配置、字段类型、校验类型和临时 ID 规则与 `add_custom_form` 相同。
+字段配置、字段类型、校验类型、`isSmsValidate`、`isEmailValidate` 和临时 ID 规则与 `add_custom_form` 相同。
 
 删除语义：
 
@@ -283,6 +285,7 @@
       "ID": 456,
       "Name": "姓名",
       "FieldType": 1,
+      "IsEmailValidate": 0,
       "ShowOrder": 0
     },
     {

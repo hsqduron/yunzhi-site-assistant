@@ -928,11 +928,15 @@
     - `4`: 下拉选择(select)
     - `5`: 多选框(checkbox)
     - `6`: 图片上传(file type="file" accept="image/*")
-    - `7`: 地区选择(省市区三级联动)
+    - `7`: 中国国内地区选择(省市区三级联动)
     - `8`: 时间选择(date/datetime picker)
     - `9`: 文件上传(普通文件)
     - `10`: 多图上传(file multiple)
     - `11`: 静态文本(仅显示,不可编辑)
+    - `12`: 国际地区选择(国家/一级行政区域/二级行政区域 三级联动)
+    - `13`: 公司名（单行文本）
+    - `14`: 姓名（单行文本）
+    - `15`: 邮箱（单行文本）
   - `FieldValues`: 字段选项值(用于单选、多选、下拉框),多个选项用 `|` 分隔,如: "选项1|选项2|选项3"
   - `FieldValuesRel`: 选项关联JSON数据(用于级联选择等复杂场景)
   - `Placeholder`: 输入框占位提示文字
@@ -947,7 +951,8 @@
     - `6`: 邮箱地址
     - `7`: 身份证号
   - `Icon`: 字段图标(CSS类名或图标路径)
-  - `IsSmsValidate`: 是否需要短信验证(0=否,1=是)，ValidateType=3 且 FieldType = 1时才有效
+  - `IsSmsValidate`: 是否需要短信验证(0=否,1=是)，ValidateType=3 且 FieldType 为 1、13、14 或 15 时有效
+  - `IsEmailValidate`: 是否需要邮箱真实性验证(0=否,1=是)，ValidateType=6 且 FieldType 为 1、13、14 或 15 时有效；开启后字段自动设为必填
   - `values`: 解析后的选项数组(由 FieldValues 分割而来,仅在 FieldType 为 3/4/5 时存在)
   - `IsShow`: 字段是否显示(0=隐藏,1=显示)；前端应只渲染 IsShow=1 的字段
   - `IsShowTitle`: 静态文本字段(FieldType=11)是否显示标题(0=不显示标题,1=显示)
@@ -957,17 +962,21 @@
 
 | 类型 | FieldType值 | HTML控件 | 适用场景 | 特殊属性 |
 |------|------------|----------|---------|---------|
-| 单行文本 | 1 | `<input type="text">` | 姓名、公司、地址等短文本 | Placeholder, ValidateType, IsSmsValidate |
+| 单行文本 | 1 | `<input type="text">` | 通用短文本 | Placeholder, ValidateType, IsSmsValidate, IsEmailValidate |
 | 多行文本 | 2 | `<textarea>` | 备注、描述、留言等长文本 | Placeholder, rows |
 | 单选框 | 3 | `<input type="radio">` | 性别、满意度等单项选择 | FieldValues(选项用\|分隔) |
 | 下拉选择 | 4 | `<select>` | 省份、服务类型等单项选择 | FieldValues, 标准HTML select标签 |
 | 多选框 | 5 | `<input type="checkbox">` | 兴趣爱好、技能等多选 | FieldValues, name加[] |
 | 图片上传 | 6 | `<input type="file">` | 头像、证件照等图片 | accept="image/*", 需enctype |
-| 地区选择 | 7 | 三个`<select>`联动 | 省市区地址选择 | 需要JS实现三级联动，隐藏字段存储完整值 |
+| 中国国内地区选择 | 7 | 三个`<select>`联动 | 省市区地址选择 | 需要JS实现三级联动，隐藏字段存储完整值 |
 | 时间选择 | 8 | `<input type="text">` | 预约时间、生日等 | 通过JS插件实现日期选择器 |
 | 文件上传 | 9 | `<input type="file">` | 文档、压缩包等文件 | 非图片文件上传 |
 | 多图上传 | 10 | `<input type="file" multiple>` | 多张图片上传 | accept="image/*", multiple |
 | 静态文本 | 11 | 纯文本显示 | 说明文字、提示信息 | IsShowTitle控制是否显示标题 |
+| 国际地区选择 | 12 | 三个`<select>`联动 | 国家/一级行政区域/二级行政区域 地址选择 | 需要JS实现三级联动，隐藏字段存储完整值 |
+| 公司名 | 13 | `<input type="text">` | 公司名称 | Placeholder, ValidateType, IsSmsValidate, IsEmailValidate |
+| 姓名 | 14 | `<input type="text">` | 联系人姓名 | Placeholder, ValidateType, IsSmsValidate, IsEmailValidate |
+| 邮箱 | 15 | `<input type="text">` | 邮箱地址 | Placeholder, ValidateType, IsSmsValidate, IsEmailValidate |
 
 **验证类型说明**:
 
@@ -1025,7 +1034,7 @@
 7. **按ShowOrder排序**(后端已排序,前端直接使用即可)
 
 8. **短信验证功能**:
-   - **触发条件**: 当字段满足 `FieldType=1` 且 `ValidateType=3`（手机号）且 `IsSmsValidate=1` 时自动显示
+   - **触发条件**: 当字段满足 `FieldType=1/13/14/15`（单行文本类）且 `ValidateType=3`（手机号）且 `IsSmsValidate=1` 时自动显示
    - **验证码输入框**: name格式为 `col{{ field.ID }}_vcode`，必须设置为必填（required）
    - **发送按钮**: 点击后调用短信接口发送验证码到用户输入的手机号
    - **验证流程**: 
@@ -1047,6 +1056,30 @@
      </span>
      {% endif %}
 
+8.1. **邮箱真实性验证功能**:
+   - **触发条件**: 当字段满足 `FieldType=1/13/14/15`（单行文本类）、`ValidateType=6`（邮箱）且 `IsEmailValidate=1` 时显示
+   - **验证码输入框**: name格式为 `col{{ field.ID }}_vcode`，必须设置为必填（required）
+   - **发送按钮**: 点击后调用邮箱验证码接口发送验证码到用户输入的邮箱
+   - **验证流程**:
+     1. 用户输入邮箱地址
+     2. 前端校验邮箱格式
+     3. 点击“获取验证码”按钮
+     4. 前端调用邮箱验证码接口
+     5. 用户收到邮件并输入验证码
+     6. 提交表单时后端验证邮箱验证码是否正确
+   - **示例代码**:
+     {% if field.ValidateType == 6 and field.IsEmailValidate == 1 %}
+     <span class="email-validate-box">
+         <input
+             class="email-code"
+             name="col{{ field.ID }}_vcode"
+             placeholder="请输入验证码"
+             required
+         >
+         <button class="email-btn" type="button">获取验证码</button>
+     </span>
+     {% endif %}
+
 9. **字段图标**:
    
    {% if field.Icon %}
@@ -1064,20 +1097,27 @@
 11. **隐藏字段的命名规范**:
     - 所有字段的name统一使用 `col{{ field.ID }}` 格式
     - 上传文件的name使用 `file_{{ field.ID }}` 格式
-    - 短信验证码的name使用 `col{{ field.ID }}_vcode` 格式
+    - 短信和邮箱验证码的name都使用 `col{{ field.ID }}_vcode` 格式
     - 地区选择需要额外的隐藏字段存储完整地区信息
+    - 国际地区选择需要额外的隐藏字段存储完整地区信息
 
-12. **地区选择JS联动**:
+12. **中国国内地区选择JS联动**:
     - 省市区三个select需要通过JS实现联动
     - 选择省时自动加载对应城市列表
     - 选择市时自动加载对应区县列表
     - 最终值存储在隐藏的region字段中
 
-13. **时间选择器初始化**:
+13. **国际地区选择JS联动**:
+    - 国家/一级行政区域/二级行政区域 三个select需要通过JS实现联动
+    - 选择国家时自动加载对应一级行政区域列表
+    - 选择一级行政区域时自动加载对应二级行政区域列表
+    - 最终值存储在隐藏的global_region字段中
+
+14. **时间选择器初始化**:
     - 时间字段使用文本框，需通过JS插件(如datetimepicker)初始化
     - 可配置日期格式、时间范围等参数
 
-14. **表单自动验证功能**:
+15. **表单自动验证功能**:
     - **内置验证脚本**: 表单已包含完整的JavaScript验证逻辑，无需额外编写
     - **必填验证**: 自动检查所有 `isrequire="1"` 的字段是否有值
     - **格式验证**: 根据 `validatetype` 自动验证手机号、邮箱、数字、身份证等格式
@@ -1087,7 +1127,7 @@
     - **错误提示**: 验证失败时弹出alert显示所有错误信息
     - **阻止提交**: 验证失败时自动阻止表单提交
 
-15. **表单AJAX提交**:
+16. **表单AJAX提交**:
     - **自动拦截**: 表单submit事件被自动拦截，改为AJAX方式提交
     - **智能数据收集**: 
       - 自动遍历所有表单元素（input、select、textarea）
@@ -1106,14 +1146,14 @@
       3. 提交表单时只提交hidden input的值，不提交file input
       4. 后端从hidden input获取已上传的文件路径
 
-16. **短信验证码功能**:
+17. **短信验证码功能**:
     - **自动绑定**: 短信按钮会自动绑定点击事件
     - **手机号验证**: 发送前自动验证手机号格式
     - **倒计时**: 发送后自动60秒倒计时，防止重复发送
     - **TODO提醒**: 代码中标记了需要接入实际短信API的位置
     - **自定义实现**: 可根据实际需求修改短信发送逻辑
 
-17. **地区三级联动**:
+18. **中国国内地区三级联动**:
     - **自动初始化**: 自动查找所有地区选择字段并初始化
     - **接口调用**:
       - 获取省份: `/index.php?c=Front/CustomForm&a=getRegion&type=prov`
@@ -1132,7 +1172,26 @@
     - **提交处理**: AJAX提交时，后端收到的是地区名称而非ID
     - **重置支持**: 表单提交成功后会自动重新加载省份列表
 
-18. **短信验证码接口**:
+19. **国际地区三级联动**:
+    - **自动初始化**: 自动查找所有地区选择字段并初始化
+    - **接口调用**:
+      - 获取国家列表: `/index.php?c=Front/CustomForm&a=getIntlRegion`
+      - 获取一级行政区域列表: `/index.php?c=Front/CustomForm&a=getIntlRegion&parent_id=国家ID`
+      - 获取二级行政区域列表: `/index.php?c=Front/CustomForm&a=getIntlRegion&parent_id=一级行政区域ID`
+    - **响应格式**: `{"success":true, "data":[{"ID":"1520", "Name":"Guangdong"}]}`
+    - **级联加载**: 
+      - 页面加载时自动获取国家列表
+      - 选择国家后自动加载对应一级行政区域列表，清空二级行政和隐藏字段
+      - 选择一级行政区域后自动加载对应二级行政区域列表，清空隐藏字段
+      - 选择二级行政区域后更新隐藏字段
+    - **值存储**: 
+      - select的value存储ID（用于联动查询）
+      - hidden input存储名称（提交时使用）
+      - 格式为"国家名称/一级行政区域名称/二级行政区域名称"，例如: "China/Guangdong/Foshan"
+    - **提交处理**: AJAX提交时，后端收到的是地区名称而非ID
+    - **重置支持**: 表单提交成功后会自动重新加载国家列表
+
+20. **短信验证码接口**:
     - **接口地址**: `/index.php?c=Front/CustomForm&a=sendsmsvcode&mobile=手机号`
     - **请求方式**: GET
     - **前置验证**: 发送前自动验证手机号格式（/^1[3-9]\d{9}$/）
@@ -1140,7 +1199,16 @@
     - **防重复发送**: 发送成功后自动60秒倒计时
     - **错误处理**: 网络错误或接口失败时显示友好提示
 
-19. **图片验证码接口**:
+20.1. **邮箱验证码接口**:
+    - **接口地址**: `/index.php?c=validatecode&a=sendEmailCode&email=邮箱地址`
+    - **请求方式**: GET
+    - **前置验证**: 发送前自动验证邮箱格式
+    - **响应格式**: `{"success":true, "msg":"ok"}` 或 `{"success":false, "msg":"错误信息"}`
+    - **防重复发送**: 发送成功后自动60秒倒计时
+    - **提交校验**: 表单提交时将 `col{{ field.ID }}_vcode` 与邮箱字段一起提交，由后端校验验证码
+    - **注意**: 邮箱验证码必须使用邮箱接口，不能调用短信接口；短信和邮箱验证可在同一表单中分别配置
+
+21. **图片验证码接口**:
     - **接口地址**: `/index.php?c=validatecode&useCurve=1&useNoise=1&fontSize=32&imageW=290&imageH=100`
     - **参数说明**:
       - `useCurve`: 是否使用曲线干扰（1=是）
@@ -1179,7 +1247,7 @@
       </script>
       ```
 
-20. **文件上传接口**:
+22. **文件上传接口**:
     - **单图/单文件上传**（类型6、9）:
       - **接口地址**: `/index.php?c=Front/CustomForm&a=uploadfile`
       - 请求方式: POST (multipart/form-data)
@@ -1211,7 +1279,7 @@
       - 失败时提示错误并清空状态
       - file input设置为display:none，通过label触发
 
-21. **表单提交自定义表单示例代码，请务必参考，特别是示例代码里的JS处理逻辑**:
+23. **表单提交自定义表单示例代码，请务必参考，特别是示例代码里的JS处理逻辑**:
     - 请参考 customform-democode-base.md
 
 > 注：本技能目前仅提供基础版示例。美化版（customform-democode-beautify.md）暂未包含在技能中，请始终以基础版代码为起点，仅修改样式、真实表单 ID 与字段展示结构，并保留其校验与提交逻辑。

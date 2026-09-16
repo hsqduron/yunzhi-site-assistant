@@ -12,8 +12,8 @@
 - `localStorage` 询盘车
 - 产品列表渲染、数量修改和删除
 - `EnquiryProduct` hidden 字段同步
-- 自定义表单 FieldType 1 至 11
-- 图片验证码、短信验证码、地区三级联动和文件上传
+- 自定义表单 FieldType 1 至 15，其中 13/14/15 按单行文本渲染
+- 图片验证码、短信/邮箱验证码、地区三级联动和文件上传
 - 基础自定义表单校验和 AJAX 提交
 - `back`、`blank`、`popup` 三种打开方式
 
@@ -68,15 +68,17 @@
     .field-icon { display: inline-block; width: 16px; height: 16px; margin-right: 4px; vertical-align: -3px; object-fit: contain; }
     .required { margin-left: 4px; color: #dc2626; }
     .field-input, .radio-group, .checkbox-group, .file-operation, .verify-code-box, .static-text { margin: 0; }
-    .form-input, .form-textarea, .form-select, .form-datetime, .sms-code, .verify-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+    .form-input, .form-textarea, .form-select, .form-datetime, .sms-code, .email-code, .verify-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
     .form-textarea { min-height: 110px; resize: vertical; }
     .radio-group, .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 16px; }
     .radio-item, .checkbox-item { display: inline-flex; align-items: center; gap: 5px; }
-    .area-select-group, .sms-validate-box, .verify-code-box { display: flex; flex-wrap: wrap; gap: 8px; }
+    .area-select-group, .sms-validate-box, .email-validate-box, .verify-code-box { display: flex; flex-wrap: wrap; gap: 8px; }
     .area-select-group .form-select { flex: 1 1 140px; }
     .sms-validate-box { margin-top: 8px; }
-    .sms-code { flex: 1 1 160px; }
+    .email-validate-box { margin-top: 8px; }
+    .sms-code, .email-code { flex: 1 1 160px; }
     .sms-btn, .upload-btn, .browse-file, .refresh-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 12px; color: var(--primary); background: #fff; border: 1px solid var(--primary); border-radius: 6px; }
+    .email-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 12px; color: var(--primary); background: #fff; border: 1px solid var(--primary); border-radius: 6px; }
     .file-operation { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
     .verify-img { width: 145px; height: 50px; object-fit: contain; border: 1px solid var(--border); }
     .upload-status { color: var(--muted); }
@@ -139,7 +141,7 @@
           {% for field in form.fields %}
             {% if field.IsShow == 1 %}
 
-              {% if field.FieldType == 1 %}
+              {% if field.FieldType == 1 or field.FieldType == 13 or field.FieldType == 14 or field.FieldType == 15 %}
               <div class="form-field-item">
                 <p class="field-label">
                   {% if field.Icon %}<img class="field-icon" src="{{ field.Icon }}" alt="">{% endif %}
@@ -151,6 +153,12 @@
                   <span class="sms-validate-box">
                     <input class="sms-code" name="col{{ field.ID }}_vcode" placeholder="请输入验证码" required>
                     <button class="sms-btn" type="button">获取验证码</button>
+                  </span>
+                  {% endif %}
+                  {% if field.ValidateType == 6 and field.IsEmailValidate == 1 %}
+                  <span class="email-validate-box">
+                    <input class="email-code" name="col{{ field.ID }}_vcode" placeholder="请输入验证码" required>
+                    <button class="email-btn" type="button">获取验证码</button>
                   </span>
                   {% endif %}
                 </p>
@@ -256,6 +264,49 @@
                 {% if field.IsShowTitle != 0 %}<p class="field-label">{{ field.Name }}</p>{% endif %}
                 <p class="static-text">{{ field.FieldValues }}</p>
               </div>
+
+	      {% elseif field.FieldType == 12 %}
+            <div class="form-field-item">
+                <p class="field-label">
+                    {% if field.Icon %}<img class="field-icon" src="{{ field.Icon }}" />{% endif %}
+                    {{ field.Name }}
+                    {% if field.IsRequire == 1 %}<span class="required">*</span>{% endif %}
+                </p>
+                <p class="field-input area-select-group">
+                    <select 
+                        id="form{{ form.form.ID }}_selGlobalCountry{{ field.ID }}" 
+                        name="selGlobalCountry"
+                        class="form-select area-province"
+                    >
+                        <option value="">select country</option>
+                    </select>
+                    <select 
+                        id="form{{ form.form.ID }}_selLevelOneRegion{{ field.ID }}" 
+                        name="selLevelOneRegion"
+                        class="form-select area-city"
+                    >
+                        <option value="">please select province/state</option>
+                    </select>
+                    <select 
+                        id="form{{ form.form.ID }}_selLevelTwoRegion{{ field.ID }}" 
+                        name="selLevelTwoRegion"
+                        class="form-select area-county"
+                    >
+                        <option value="">please select city</option>
+                    </select>
+                    <input 
+                        type="hidden" 
+                        id="form{{ form.form.ID }}_global_region{{ field.ID }}" 
+                        name="col{{ field.ID }}" 
+                        chname="{{ field.Name }}" 
+                        isrequire="{{ field.IsRequire }}" 
+                        fieldtype="{{ field.FieldType }}" 
+                        validatetype="{{ field.ValidateType }}" 
+                        class="form-region"
+                    >
+                </p>
+            </div>
+
               {% endif %}
 
             {% endif %}
@@ -561,7 +612,8 @@ window.__INIT_ENQUIRY_ITEM__ = {
         form.reset();
         form.querySelectorAll('.upload-status').forEach(function (node) { node.textContent = ''; });
         renderProductList();
-        form.querySelectorAll('.area-province').forEach(loadProvinces);
+        form.querySelectorAll('select[id*="_selProvince"]').forEach(loadProvinces);
+        form.querySelectorAll('select[id*="_selGlobalCountry"]').forEach(loadGlobalCountries);
       })
       .catch(function (error) {
         console.error('表单提交错误:', error);
@@ -628,7 +680,7 @@ window.__INIT_ENQUIRY_ITEM__ = {
 
   function bindRegions() {
     if (!form) return;
-    form.querySelectorAll('.area-province').forEach(function (provinceSelect) {
+    form.querySelectorAll('select[id*="_selProvince"]').forEach(function (provinceSelect) {
       var fieldID = provinceSelect.id.replace(/.*selProvince/, '');
       var citySelect = document.getElementById('form{{ formID }}_selCity' + fieldID);
       var areaSelect = document.getElementById('form{{ formID }}_selArea' + fieldID);
@@ -664,6 +716,92 @@ window.__INIT_ENQUIRY_ITEM__ = {
         }
       });
     });
+
+    form.querySelectorAll('select[id*="_selGlobalCountry"]').forEach(function (countrySelect) {
+      var fieldID = countrySelect.id.replace(/.*selGlobalCountry/, '');
+      var levelOneSelect = document.getElementById('form{{ formID }}_selLevelOneRegion' + fieldID);
+      var levelTwoSelect = document.getElementById('form{{ formID }}_selLevelTwoRegion' + fieldID);
+      var globalRegionInput = document.getElementById('form{{ formID }}_global_region' + fieldID);
+      if (!levelOneSelect || !levelTwoSelect || !globalRegionInput) return;
+
+      loadGlobalCountries(countrySelect);
+      countrySelect.addEventListener('change', function () {
+        if (!this.value) {
+          levelOneSelect.innerHTML = '<option value="">please select province/state</option>';
+          levelTwoSelect.innerHTML = '<option value="">please select city</option>';
+          globalRegionInput.value = '';
+          return;
+        }
+        loadGlobalRegions(
+          this.value,
+          levelOneSelect,
+          levelTwoSelect,
+          globalRegionInput,
+          'please select province/state',
+          'please select city'
+        );
+      });
+      levelOneSelect.addEventListener('change', function () {
+        if (!this.value) {
+          levelTwoSelect.innerHTML = '<option value="">please select city</option>';
+          globalRegionInput.value = '';
+          return;
+        }
+        loadGlobalRegions(
+          this.value,
+          levelTwoSelect,
+          null,
+          globalRegionInput,
+          'please select city'
+        );
+      });
+      levelTwoSelect.addEventListener('change', function () {
+        var countryName = countrySelect.options[countrySelect.selectedIndex].text;
+        var levelOneName = levelOneSelect.options[levelOneSelect.selectedIndex].text;
+        var levelTwoName = levelTwoSelect.options[levelTwoSelect.selectedIndex].text;
+        if (countrySelect.value && levelOneSelect.value && levelTwoSelect.value) {
+          globalRegionInput.value = countryName + '/' + levelOneName + '/' + levelTwoName;
+        } else {
+          globalRegionInput.value = '';
+        }
+      });
+    });
+  }
+
+  function loadGlobalCountries(selectElement) {
+    fetch('/index.php?c=Front/CustomForm&a=getIntlRegion')
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.success || !data.data) return;
+        selectElement.innerHTML = '<option value="">select country</option>';
+        data.data.forEach(function (item) {
+          var option = document.createElement('option');
+          option.value = item.ID;
+          option.textContent = item.Name;
+          selectElement.appendChild(option);
+        });
+      })
+      .catch(function (error) { console.error('加载国家失败:', error); });
+  }
+
+  function loadGlobalRegions(parentID, targetSelect, childSelect, regionInput, targetPlaceholder, childPlaceholder) {
+    fetch('/index.php?c=Front/CustomForm&a=getIntlRegion&parent_id=' + encodeURIComponent(parentID))
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.success || !data.data) return;
+        targetSelect.innerHTML = '<option value="">' + targetPlaceholder + '</option>';
+        if (childSelect) {
+          childSelect.innerHTML = '<option value="">' + childPlaceholder + '</option>';
+        }
+        regionInput.value = '';
+        data.data.forEach(function (item) {
+          var option = document.createElement('option');
+          option.value = item.ID;
+          option.textContent = item.Name;
+          targetSelect.appendChild(option);
+        });
+      })
+      .catch(function (error) { console.error('加载国际地区失败:', error); });
   }
 
   function bindSmsButtons() {
@@ -680,6 +818,51 @@ window.__INIT_ENQUIRY_ITEM__ = {
         button.disabled = true;
         button.textContent = '发送中...';
         fetch('/index.php?c=Front/CustomForm&a=sendsmsvcode&mobile=' + encodeURIComponent(phoneInput.value))
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (!data.success) {
+              alert(data.msg || data.message || '发送失败，请重试');
+              button.disabled = false;
+              button.textContent = originalText;
+              return;
+            }
+            var seconds = 60;
+            button.textContent = seconds + 's后重试';
+            var timer = window.setInterval(function () {
+              seconds -= 1;
+              if (seconds <= 0) {
+                window.clearInterval(timer);
+                button.disabled = false;
+                button.textContent = originalText;
+              } else {
+                button.textContent = seconds + 's后重试';
+              }
+            }, 1000);
+          })
+          .catch(function () {
+            alert('网络错误，请重试');
+            button.disabled = false;
+            button.textContent = originalText;
+          });
+      });
+    });
+  }
+
+  function bindEmailButtons() {
+    if (!form) return;
+    form.querySelectorAll('.email-btn').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var box = button.closest('.email-validate-box');
+        var emailInput = box ? box.previousElementSibling : null;
+        var emailReg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailInput || !emailReg.test(emailInput.value)) {
+          alert('请先输入正确的邮箱地址');
+          return;
+        }
+        var originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = '发送中...';
+        fetch('/index.php?c=validatecode&a=sendEmailCode&email=' + encodeURIComponent(emailInput.value))
           .then(function (response) { return response.json(); })
           .then(function (data) {
             if (!data.success) {
@@ -807,6 +990,7 @@ window.__INIT_ENQUIRY_ITEM__ = {
   renderProductList();
   bindRegions();
   bindSmsButtons();
+  bindEmailButtons();
   bindVerifyCode();
   bindFileUpload();
   bindContinueButton();

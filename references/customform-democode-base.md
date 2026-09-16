@@ -25,8 +25,8 @@
             {# 只显示启用的字段 #}
             {% if field.IsShow == 1 %}
             
-            {# 类型1: 单行文本 #}
-            {% if field.FieldType == 1 %}
+            {# 类型1/13/14/15: 单行文本类（通用文本/公司名/姓名/邮箱） #}
+            {% if field.FieldType == 1 or field.FieldType == 13 or field.FieldType == 14 or field.FieldType == 15 %}
             <div class="form-field-item">
                 <p class="field-label">
                     {% if field.Icon %}<img class="field-icon" src="{{ field.Icon }}" />{% endif %}
@@ -54,6 +54,18 @@
                             required
                         >
                         <button class="sms-btn" type="button">获取验证码</button>
+                    </span>
+                    {% endif %}
+                    {# 邮箱字段且开启邮箱真实性验证时，显示验证码输入框和发送按钮 #}
+                    {% if field.ValidateType == 6 and field.IsEmailValidate == 1 %}
+                    <span class="email-validate-box">
+                        <input
+                            class="email-code"
+                            name="col{{ field.ID }}_vcode"
+                            placeholder="请输入验证码"
+                            required
+                        >
+                        <button class="email-btn" type="button">获取验证码</button>
                     </span>
                     {% endif %}
                 </p>
@@ -185,7 +197,7 @@
                 <input type="hidden" name="col{{ field.ID }}" chname="{{ field.Name }}" isrequire="{{ field.IsRequire }}" fieldtype="{{ field.FieldType }}" validatetype="{{ field.ValidateType }}" />
             </div>
             
-            {# 类型7: 地区选择 #}
+            {# 类型7: 中国国内地区选择 #}
             {% elseif field.FieldType == 7 %}
             <div class="form-field-item">
                 <p class="field-label">
@@ -314,8 +326,52 @@
                     <span>{{ field.FieldValues }}</span>
                 </p>
             </div>
+
+	    {# 类型12: 国际地区选择 #}
+            {% elseif field.FieldType == 12 %}
+            <div class="form-field-item">
+                <p class="field-label">
+                    {% if field.Icon %}<img class="field-icon" src="{{ field.Icon }}" />{% endif %}
+                    {{ field.Name }}
+                    {% if field.IsRequire == 1 %}<span class="required">*</span>{% endif %}
+                </p>
+                <p class="field-input area-select-group">
+                    <select 
+                        id="form{{ form.form.ID }}_selGlobalCountry{{ field.ID }}" 
+                        name="selGlobalCountry"
+                        class="form-select area-province"
+                    >
+                        <option value="">select country</option>
+                    </select>
+                    <select 
+                        id="form{{ form.form.ID }}_selLevelOneRegion{{ field.ID }}" 
+                        name="selLevelOneRegion"
+                        class="form-select area-city"
+                    >
+                        <option value="">please select province/state</option>
+                    </select>
+                    <select 
+                        id="form{{ form.form.ID }}_selLevelTwoRegion{{ field.ID }}" 
+                        name="selLevelTwoRegion"
+                        class="form-select area-county"
+                    >
+                        <option value="">please select city</option>
+                    </select>
+                    <input 
+                        type="hidden" 
+                        id="form{{ form.form.ID }}_global_region{{ field.ID }}" 
+                        name="col{{ field.ID }}" 
+                        chname="{{ field.Name }}" 
+                        isrequire="{{ field.IsRequire }}" 
+                        fieldtype="{{ field.FieldType }}" 
+                        validatetype="{{ field.ValidateType }}" 
+                        class="form-region"
+                    >
+                </p>
+            </div>
+
             {% endif %}
-            
+
             {% endif %}
         {% endfor %}
         
@@ -529,9 +585,13 @@
                     });
                     
                     // 重新加载地区选择（如果需要）
-                    var provinceSelects = form.querySelectorAll('.area-province');
+                    var provinceSelects = form.querySelectorAll('select[id*="_selProvince"]');
                     provinceSelects.forEach(function(sel) {
                         loadProvinces(sel);
+                    });
+                    var globalCountrySelects = form.querySelectorAll('select[id*="_selGlobalCountry"]');
+                    globalCountrySelects.forEach(function(sel) {
+                        loadGlobalCountries(sel);
                     });
                 } else {
                     alert(data.msg || '提交失败，请重试');
@@ -616,9 +676,74 @@
                     });
             });
         });
+
+        // 邮箱验证码按钮点击事件
+        var emailButtons = form.querySelectorAll('.email-btn');
+        emailButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                // 查找对应的邮箱输入框
+                var emailBox = this.closest('.email-validate-box');
+                if (!emailBox) return;
+
+                var emailInput = emailBox.previousElementSibling;
+                if (!emailInput || !emailInput.value) {
+                    alert('请先输入邮箱地址');
+                    return;
+                }
+
+                // 验证邮箱格式
+                var emailReg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!emailReg.test(emailInput.value)) {
+                    alert('邮箱地址格式不正确');
+                    return;
+                }
+
+                // 调用邮箱验证码接口发送验证码
+                var email = emailInput.value;
+                var emailUrl = '/index.php?c=validatecode&a=sendEmailCode&email=' + encodeURIComponent(email);
+
+                // 显示加载状态
+                var originalText = this.textContent;
+                this.disabled = true;
+                this.textContent = '发送中...';
+
+                fetch(emailUrl)
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            alert('验证码已发送到 ' + email);
+
+                            // 倒计时60秒
+                            var countdown = 60;
+                            btn.textContent = countdown + 's后重试';
+
+                            var timer = setInterval(function() {
+                                countdown--;
+                                if (countdown <= 0) {
+                                    clearInterval(timer);
+                                    btn.disabled = false;
+                                    btn.textContent = '获取验证码';
+                                } else {
+                                    btn.textContent = countdown + 's后重试';
+                                }
+                            }, 1000);
+                        } else {
+                            alert(data.msg || '发送失败，请重试');
+                            btn.disabled = false;
+                            btn.textContent = originalText;
+                        }
+                    })
+                    .catch(function(error) {
+                        alert('网络错误，请重试');
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        console.error('邮箱验证码发送错误:', error);
+                    });
+            });
+        });
         
-        // 地区选择三级联动（如果存在地区选择字段）
-        var provinceSelects = form.querySelectorAll('.area-province');
+        // 中国国内地区选择三级联动（如果存在地区选择字段）
+        var provinceSelects = form.querySelectorAll('select[id*="_selProvince"]');
         provinceSelects.forEach(function(provinceSel) {
             var fieldId = provinceSel.id.replace(/.*selProvince/, '');
             var citySel = document.getElementById('form{{ form.form.ID }}_selCity' + fieldId);
@@ -669,6 +794,58 @@
                     regionInput.value = provinceName + '/' + cityName + '/' + areaName;
                 } else {
                     regionInput.value = '';
+                }
+            });
+        });
+
+        // 国际地区选择三级联动（如果存在国际地区选择字段）
+        var globalCountrySelects = form.querySelectorAll('select[id*="_selGlobalCountry"]');
+        globalCountrySelects.forEach(function(countrySel) {
+            var fieldId = countrySel.id.replace(/.*selGlobalCountry/, '');
+            var levelOneSel = document.getElementById('form{{ form.form.ID }}_selLevelOneRegion' + fieldId);
+            var levelTwoSel = document.getElementById('form{{ form.form.ID }}_selLevelTwoRegion' + fieldId);
+            var globalRegionInput = document.getElementById('form{{ form.form.ID }}_global_region' + fieldId);
+
+            if (!levelOneSel || !levelTwoSel || !globalRegionInput) return;
+
+            // 初始化：加载国家列表
+            loadGlobalCountries(countrySel);
+
+            // 国家变化时加载一级行政区域
+            countrySel.addEventListener('change', function() {
+                var countryID = this.value;
+                if (!countryID) {
+                    levelOneSel.innerHTML = '<option value="">please select province/state</option>';
+                    levelTwoSel.innerHTML = '<option value="">please select city</option>';
+                    globalRegionInput.value = '';
+                    return;
+                }
+
+                loadGlobalRegions(countryID, levelOneSel, levelTwoSel, globalRegionInput, 'please select province/state', 'please select city');
+            });
+
+            // 一级行政区域变化时加载二级行政区域
+            levelOneSel.addEventListener('change', function() {
+                var levelOneID = this.value;
+                if (!levelOneID) {
+                    levelTwoSel.innerHTML = '<option value="">please select city</option>';
+                    globalRegionInput.value = '';
+                    return;
+                }
+
+                loadGlobalRegions(levelOneID, levelTwoSel, null, globalRegionInput, 'please select city');
+            });
+
+            // 二级行政区域变化时更新隐藏字段（存储名称而非ID）
+            levelTwoSel.addEventListener('change', function() {
+                var countryName = countrySel.options[countrySel.selectedIndex].text;
+                var levelOneName = levelOneSel.options[levelOneSel.selectedIndex].text;
+                var levelTwoName = this.options[this.selectedIndex].text;
+
+                if (countrySel.value && levelOneSel.value && levelTwoSel.value) {
+                    globalRegionInput.value = countryName + '/' + levelOneName + '/' + levelTwoName;
+                } else {
+                    globalRegionInput.value = '';
                 }
             });
         });
@@ -735,6 +912,51 @@
                 })
                 .catch(function(error) {
                     console.error('加载区县失败:', error);
+                });
+        }
+
+        // 加载国家列表
+        function loadGlobalCountries(selectElement) {
+            fetch('/index.php?c=Front/CustomForm&a=getIntlRegion')
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        selectElement.innerHTML = '<option value="">select country</option>';
+                        data.data.forEach(function(country) {
+                            var option = document.createElement('option');
+                            option.value = country.ID;
+                            option.textContent = country.Name;
+                            selectElement.appendChild(option);
+                        });
+                    }
+                })
+                .catch(function(error) {
+                    console.error('加载国家失败:', error);
+                });
+        }
+
+        // 加载国际地区的一级或二级行政区域
+        function loadGlobalRegions(parentID, targetSelect, childSelect, regionInput, targetPlaceholder, childPlaceholder) {
+            fetch('/index.php?c=Front/CustomForm&a=getIntlRegion&parent_id=' + encodeURIComponent(parentID))
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success && data.data) {
+                        targetSelect.innerHTML = '<option value="">' + targetPlaceholder + '</option>';
+                        if (childSelect) {
+                            childSelect.innerHTML = '<option value="">' + childPlaceholder + '</option>';
+                        }
+                        regionInput.value = '';
+
+                        data.data.forEach(function(region) {
+                            var option = document.createElement('option');
+                            option.value = region.ID;
+                            option.textContent = region.Name;
+                            targetSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(function(error) {
+                    console.error('加载国际地区失败:', error);
                 });
         }
         

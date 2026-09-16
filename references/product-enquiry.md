@@ -11,7 +11,7 @@
 
 完整可复制代码见：[`product-enquiry-democode.md`](product-enquiry-democode.md)。
 
-自定义表单的字段类型、上传、短信验证码、地区联动、图形验证码和 AJAX 提交逻辑必须以 [`customform-democode-base.md`](customform-democode-base.md) 为基础。询盘页只增加产品列表和 `EnquiryProduct` 业务逻辑，不要删除基础示例中的校验和提交代码。
+自定义表单的字段类型、上传、短信/邮箱验证码、地区联动、图形验证码和 AJAX 提交逻辑必须以 [`customform-democode-base.md`](customform-democode-base.md) 为基础。询盘页只增加产品列表和 `EnquiryProduct` 业务逻辑，不要删除基础示例中的校验和提交代码。
 
 ## 二、部署前准备
 
@@ -278,11 +278,11 @@ localStorage.removeItem(STORAGE_KEY);
 - 普通字段：`col{{ field.ID }}`
 - 多选字段：`col{{ field.ID }}[]`
 - 上传文件：`file_{{ field.ID }}` 或 `file_{{ field.ID }}[]`
-- 短信验证码：`col{{ field.ID }}_vcode`
+- 短信/邮箱验证码：`col{{ field.ID }}_vcode`
 
-只渲染 `field.IsShow == 1` 的字段，并保留 FieldType 1 至 11 的处理。上传字段必须使用 hidden 字段保存上传接口返回的路径，表单提交时不重复提交原始 file input。
+只渲染 `field.IsShow == 1` 的字段，并保留 FieldType 1 至 15 的处理。其中 FieldType 13（公司名）、14（姓名）、15（邮箱）虽然具有明确业务语义，实际均按单行文本控件渲染。邮箱字段满足 `ValidateType=6 && IsEmailValidate=1` 时，必须显示邮箱验证码输入框并调用邮箱验证码接口。上传字段必须使用 hidden 字段保存上传接口返回的路径，表单提交时不重复提交原始 file input。
 
-完整字段循环、验证码、短信、地区和上传实现位于 [`product-enquiry-democode.md`](product-enquiry-democode.md)。
+完整字段循环、图形验证码、短信/邮箱验证码、地区和上传实现位于 [`product-enquiry-democode.md`](product-enquiry-democode.md)。
 
 ## 九、提交表单
 
