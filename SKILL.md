@@ -92,7 +92,7 @@ when_to_use: "当用户说“帮我建个网站”“做个官网/落地页”�
 | 常见问答 | `FAQPage` |
 | 面包屑 | `BreadcrumbList` |
 
-**产品特殊约定**：本站产品 JSON-LD 为非商品类，不生成 `offers`/`price`/库存等交易字段；但为满足 Google 要求必须提供 `aggregateRating`：`ratingValue` 在 4.5–5.0 之间，`reviewCount` 在 80–100 之间。该评分仅作结构化补充字段，不得显示为站内虚假评分、销售数据或评价列表。
+**产品特殊约定**：本站产品 JSON-LD 为非商品类，不生成 `offers`/`price`/库存等交易字段；但为满足 Google 要求必须提供 `aggregateRating`：`ratingValue` ，`reviewCount` 按真实情况取值。该评分仅作结构化补充字段，不得显示为站内虚假评分、销售数据或评价列表。
 
 ## 5. 新建网站规划
 
